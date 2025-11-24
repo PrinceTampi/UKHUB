@@ -1,57 +1,36 @@
-import { useState } from 'react';
-import { CONTACT_INFO } from '../../utils/constants';
+import { useState, useEffect } from 'react';
 import Card from '../../components/ui/Card';
 import SearchBar from '../../components/ui/SearchBar';
 import Button from '../../components/ui/Button';
 import { LocationIcon, MailIcon, PhoneIcon, ClockIcon, UsersIcon, SearchIcon, PlusIcon, PencilIcon, TrashIcon } from '../../components/icons';
+import { fetchContacts } from '../../services/contactService';
+
 
 const AdminContacts = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [officialContacts, setOfficialContacts] = useState([]);
+  const [organizationLeaders, setOrganizationLeaders] = useState([]);
 
-  // Mock data for organization leaders
-  const organizationLeaders = [
-    { 
-      id: 1,
-      name: 'Ketua BEM', 
-      email: 'ketua.bem@universitas.ac.id', 
-      phone: '+62 123 456 7892', 
-      organization: 'BEM',
-      position: 'Ketua Umum',
-      photo: null
-    },
-    { 
-      id: 2,
-      name: 'Ketua DPM', 
-      email: 'ketua.dpm@universitas.ac.id', 
-      phone: '+62 123 456 7893', 
-      organization: 'DPM',
-      position: 'Ketua Umum',
-      photo: null
-    },
-    { 
-      id: 3,
-      name: 'Ketua HIMTI', 
-      email: 'ketua.himti@universitas.ac.id', 
-      phone: '+62 123 456 7894', 
-      organization: 'HIMTI',
-      position: 'Ketua',
-      photo: null
-    },
-    { 
-      id: 4,
-      name: 'Ketua HIMSI', 
-      email: 'ketua.himsi@universitas.ac.id', 
-      phone: '+62 123 456 7895', 
-      organization: 'HIMSI',
-      position: 'Ketua',
-      photo: null
-    },
-  ];
+  useEffect(() => {
+    const loadContacts = async () => {
+      try {
+        const contacts = await fetchContacts();
 
-  // Filter organizations based on search
+        // Filter contacts by type property
+        setOfficialContacts(contacts.filter(c => c.type === 'official'));
+        setOrganizationLeaders(contacts.filter(c => c.type === 'leader'));
+      } catch (error) {
+        setOfficialContacts([]);
+        setOrganizationLeaders([]);
+      }
+    };
+
+    loadContacts();
+  }, []);
+
   const filteredLeaders = organizationLeaders.filter(leader =>
     leader.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    leader.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (leader.organization && leader.organization.toLowerCase().includes(searchTerm.toLowerCase())) ||
     leader.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -88,143 +67,72 @@ const AdminContacts = () => {
         </div>
       </div>
 
-      {/* WR3 & Kemahasiswaan Section */}
+      {/* Official Contacts Section */}
       <div className="mb-24">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-12">
           Kontak Resmi
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          {/* WR3 Card */}
-          <Card hover className="border-l-4 border-l-blue-600 dark:border-l-blue-400 hover-lift">
-            <Card.Body className="p-10">
-              <div className="flex items-start justify-between mb-10">
-                <div className="flex items-start gap-5">
-                  <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
-                    WR
+          {officialContacts.length > 0 ? officialContacts.map(contact => (
+            <Card hover key={contact.id} className="border-l-4 border-l-blue-600 dark:border-l-blue-400 hover-lift">
+              <Card.Body className="p-10">
+                <div className="flex items-start justify-between mb-10">
+                  <div className="flex items-start gap-5">
+                    <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
+                      {contact.abbreviation || contact.name.substring(0,2).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                        {contact.name}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {contact.position}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      {CONTACT_INFO.WR3.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Wakil Rektor Bidang Kemahasiswaan
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                    <PencilIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <LocationIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Alamat</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{CONTACT_INFO.WR3.address}</p>
+                  <div className="flex gap-2">
+                    <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                      <PencilIcon className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-start gap-4">
-                  <MailIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</p>
-                    <a 
-                      href={`mailto:${CONTACT_INFO.WR3.email}`}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {CONTACT_INFO.WR3.email}
-                    </a>
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <LocationIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Alamat</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{contact.address}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <MailIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</p>
+                      <a href={`mailto:${contact.email}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                        {contact.email}
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <PhoneIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Telepon</p>
+                      <a href={`tel:${contact.phone.replace(/\s/g,'')}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                        {contact.phone}
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <ClockIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Jam Operasional</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Senin - Jumat: 08:00 - 16:00 WIB</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-start gap-4">
-                  <PhoneIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Telepon</p>
-                    <a 
-                      href={`tel:${CONTACT_INFO.WR3.phone.replace(/\s/g, '')}`}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {CONTACT_INFO.WR3.phone}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <ClockIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Jam Operasional</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Senin - Jumat: 08:00 - 16:00 WIB</p>
-                  </div>
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
-
-          {/* Kemahasiswaan Card */}
-          <Card hover className="border-l-4 border-l-green-600 dark:border-l-green-400 hover-lift">
-            <Card.Body className="p-10">
-              <div className="flex items-start justify-between mb-10">
-                <div className="flex items-start gap-5">
-                  <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-green-500 to-green-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
-                    KM
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      {CONTACT_INFO.KEMAHASISWAAN.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Divisi Kemahasiswaan
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                    <PencilIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <LocationIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Alamat</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{CONTACT_INFO.KEMAHASISWAAN.address}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <MailIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</p>
-                    <a 
-                      href={`mailto:${CONTACT_INFO.KEMAHASISWAAN.email}`}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {CONTACT_INFO.KEMAHASISWAAN.email}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <PhoneIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Telepon</p>
-                    <a 
-                      href={`tel:${CONTACT_INFO.KEMAHASISWAAN.phone.replace(/\s/g, '')}`}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {CONTACT_INFO.KEMAHASISWAAN.phone}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <ClockIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Jam Operasional</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Senin - Jumat: 08:00 - 16:00 WIB</p>
-                  </div>
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
+              </Card.Body>
+            </Card>
+          )) : <p>No official contacts found.</p>}
         </div>
       </div>
 
@@ -245,32 +153,22 @@ const AdminContacts = () => {
         </div>
         {filteredLeaders.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-            {filteredLeaders.map((leader) => (
+            {filteredLeaders.map(leader => (
               <Card key={leader.id} hover className="border-l-4 border-l-purple-600 dark:border-l-purple-400 hover-lift">
                 <Card.Body className="p-10">
                   <div className="flex items-start justify-between mb-8">
                     <div className="flex items-start gap-5">
                       <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0">
                         {leader.photo ? (
-                          <img 
-                            src={leader.photo} 
-                            alt={leader.name}
-                            className="w-full h-full rounded-2xl object-cover"
-                          />
+                          <img src={leader.photo} alt={leader.name} className="w-full h-full rounded-2xl object-cover" />
                         ) : (
                           <UsersIcon className="w-8 h-8" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 truncate">
-                          {leader.name}
-                        </h3>
-                        <p className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-2">
-                          {leader.organization}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {leader.position}
-                        </p>
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 truncate">{leader.name}</h3>
+                        <p className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-2">{leader.organization}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{leader.position}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -283,17 +181,11 @@ const AdminContacts = () => {
                     </div>
                   </div>
                   <div className="space-y-4 pt-8 border-t border-gray-200 dark:border-gray-700">
-                    <a
-                      href={`mailto:${leader.email}`}
-                      className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
-                    >
+                    <a href={`mailto:${leader.email}`} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
                       <MailIcon className="w-5 h-5 shrink-0" />
                       <span className="truncate group-hover:underline">{leader.email}</span>
                     </a>
-                    <a
-                      href={`tel:${leader.phone.replace(/\s/g, '')}`}
-                      className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
-                    >
+                    <a href={`tel:${leader.phone.replace(/\s/g, '')}`} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group">
                       <PhoneIcon className="w-5 h-5 shrink-0" />
                       <span className="group-hover:underline">{leader.phone}</span>
                     </a>
@@ -303,14 +195,14 @@ const AdminContacts = () => {
             ))}
           </div>
         ) : (
-        <Card>
-          <Card.Body className="text-center py-20">
-            <SearchIcon className="w-24 h-24 mx-auto text-gray-400 mb-8" />
-            <p className="text-xl text-gray-600 dark:text-gray-400">
-              Tidak ada kontak yang ditemukan untuk "{searchTerm}"
-            </p>
-          </Card.Body>
-        </Card>
+          <Card>
+            <Card.Body className="text-center py-20">
+              <SearchIcon className="w-24 h-24 mx-auto text-gray-400 mb-8" />
+              <p className="text-xl text-gray-600 dark:text-gray-400">
+                Tidak ada kontak yang ditemukan untuk "{searchTerm}"
+              </p>
+            </Card.Body>
+          </Card>
         )}
       </div>
     </div>

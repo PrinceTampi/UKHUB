@@ -10,63 +10,7 @@ const AdminAnnouncements = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
 
-  // Mock data - in real app, this would come from API
-  const announcements = [
-    {
-      id: 1,
-      title: 'Pengumuman Penting: Open Recruitment BEM 2024',
-      category: 'Penting',
-      date: '2024-03-10',
-      author: 'WR3',
-      isUrgent: true,
-      excerpt: 'Dibuka pendaftaran untuk anggota baru Badan Eksekutif Mahasiswa periode 2024. Pendaftaran dibuka mulai tanggal 15 Maret 2024.',
-    },
-    {
-      id: 2,
-      title: 'Seminar Kewirausahaan Mahasiswa',
-      category: 'Event',
-      date: '2024-03-12',
-      author: 'Kemahasiswaan',
-      isUrgent: false,
-      excerpt: 'Seminar tentang kewirausahaan untuk mahasiswa dengan pembicara dari industri. Acara akan dilaksanakan pada tanggal 25 Maret 2024.',
-    },
-    {
-      id: 3,
-      title: 'Workshop Leadership & Management',
-      category: 'Event',
-      date: '2024-03-15',
-      author: 'Kemahasiswaan',
-      isUrgent: false,
-      excerpt: 'Workshop untuk meningkatkan kemampuan kepemimpinan dan manajemen organisasi. Terbuka untuk semua organisasi kemahasiswaan.',
-    },
-    {
-      id: 4,
-      title: 'Informasi Perpanjangan Masa Aktif Organisasi',
-      category: 'Informasi',
-      date: '2024-03-18',
-      author: 'WR3',
-      isUrgent: false,
-      excerpt: 'Informasi penting mengenai perpanjangan masa aktif organisasi kemahasiswaan untuk periode 2024-2025.',
-    },
-    {
-      id: 5,
-      title: 'Pendaftaran Program Beasiswa Kemahasiswaan',
-      category: 'Penting',
-      date: '2024-03-20',
-      author: 'WR3',
-      isUrgent: true,
-      excerpt: 'Dibuka pendaftaran program beasiswa untuk mahasiswa aktif yang terlibat dalam organisasi kemahasiswaan.',
-    },
-    {
-      id: 6,
-      title: 'Pelatihan Manajemen Keuangan Organisasi',
-      category: 'Event',
-      date: '2024-03-22',
-      author: 'Kemahasiswaan',
-      isUrgent: false,
-      excerpt: 'Pelatihan manajemen keuangan untuk pengurus organisasi kemahasiswaan. Wajib diikuti oleh bendahara organisasi.',
-    },
-  ];
+  const announcements = [];
 
   const filters = ANNOUNCEMENT_CATEGORIES.map(cat => ({
     value: cat,

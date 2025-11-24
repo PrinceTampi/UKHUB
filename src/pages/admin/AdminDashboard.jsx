@@ -9,7 +9,6 @@ const AdminDashboard = () => {
   const [loadingOrgs, setLoadingOrgs] = useState(true);
 
   useEffect(() => {
-  
     const loadOrganizationsCount = async () => {
       setLoadingOrgs(true);
       try {

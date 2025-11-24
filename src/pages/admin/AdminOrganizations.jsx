@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import SearchBar from '../../components/ui/SearchBar';
-import { ORGANIZATION_CATEGORIES } from '../../utils/constants';
 import { OrganizationIcon, PlusIcon } from '../../components/icons';
-import { fetchOrganizations, createOrganization, updateOrganization, deleteOrganization } from '../../services/organizationService';
+import { fetchOrganizations, createOrganization, updateOrganization, deleteOrganization, fetchOrganizationCategories } from '../../services/organizationService';
 import { useAuth } from '../../context/AuthContext';
 
 const AdminOrganizations = () => {
@@ -18,6 +17,7 @@ const AdminOrganizations = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [filters, setFilters] = useState([]);
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -37,6 +37,7 @@ const AdminOrganizations = () => {
 
   useEffect(() => {
     loadOrganizations();
+    loadCategories();
   }, []);
 
   const loadOrganizations = async () => {
@@ -52,10 +53,16 @@ const AdminOrganizations = () => {
     }
   };
 
-  const filters = ORGANIZATION_CATEGORIES.map(cat => ({
-    value: cat,
-    label: cat,
-  }));
+  const loadCategories = async () => {
+    try {
+      const categories = await fetchOrganizationCategories();
+      const filtersData = categories.map(cat => ({ value: cat, label: cat }));
+      setFilters(filtersData);
+    } catch {
+      setFilters([]);
+    }
+  };
+
 
   const filteredOrganizations = organizations.filter(org => {
     const matchesSearch =
@@ -65,6 +72,7 @@ const AdminOrganizations = () => {
     const matchesCategory = !selectedCategory || org.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
 
   const handleSearch = (value) => {
     setSearchTerm(value);
