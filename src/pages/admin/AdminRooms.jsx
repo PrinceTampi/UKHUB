@@ -9,75 +9,7 @@ const AdminRooms = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBuilding, setSelectedBuilding] = useState('');
 
-  // Mock data - in real app, this would come from API
-  const rooms = [
-    {
-      id: 1,
-      name: 'GK3-204',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 2',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System'],
-      accessHours: '08:00 - 17:00',
-      capacity: 30,
-      organization: 'BEM',
-      status: 'available',
-    },
-    {
-      id: 2,
-      name: 'GK3-205',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 2',
-      facilities: ['AC', 'Proyektor', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 20,
-      organization: 'DPM',
-      status: 'available',
-    },
-    {
-      id: 3,
-      name: 'GK3-301',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 3',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System', 'Panggung'],
-      accessHours: '08:00 - 20:00',
-      capacity: 100,
-      organization: 'UKM Seni',
-      status: 'occupied',
-    },
-    {
-      id: 4,
-      name: 'GK3-102',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 1',
-      facilities: ['AC', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 15,
-      organization: 'HIMTI',
-      status: 'available',
-    },
-    {
-      id: 5,
-      name: 'GK3-103',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 1',
-      facilities: ['AC', 'Proyektor', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 25,
-      organization: 'HIMSI',
-      status: 'maintenance',
-    },
-    {
-      id: 6,
-      name: 'Aula Utama',
-      building: 'Gedung A',
-      location: 'Lantai 1',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System', 'Panggung', 'Layar Besar'],
-      accessHours: '08:00 - 22:00',
-      capacity: 200,
-      organization: 'Semua Organisasi',
-      status: 'available',
-    },
-  ];
+  const rooms = [];
 
   const buildings = [...new Set(rooms.map(room => room.building))];
   const buildingFilters = buildings.map(building => ({

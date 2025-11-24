@@ -10,81 +10,7 @@ const AdminActivities = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
 
-  // Mock data - in real app, this would come from API
-  const activities = [
-    {
-      id: 1,
-      title: 'Workshop Leadership & Management',
-      date: '2024-03-15',
-      time: '09:00',
-      status: 'upcoming',
-      location: 'Aula Utama, Gedung A',
-      organization: 'BEM',
-      type: 'workshop',
-      description: 'Workshop untuk meningkatkan kemampuan kepemimpinan dan manajemen organisasi',
-      registrationRequired: true,
-    },
-    {
-      id: 2,
-      title: 'Seminar Kewirausahaan Mahasiswa',
-      date: '2024-03-20',
-      time: '14:00',
-      status: 'upcoming',
-      location: 'Ruang Seminar, Gedung B',
-      organization: 'Kemahasiswaan',
-      type: 'seminar',
-      description: 'Seminar tentang kewirausahaan untuk mahasiswa dengan pembicara dari industri',
-      registrationRequired: true,
-    },
-    {
-      id: 3,
-      title: 'Open Recruitment Anggota Baru',
-      date: '2024-03-25',
-      time: '10:00',
-      status: 'upcoming',
-      location: 'Gedung Kemahasiswaan',
-      organization: 'BEM',
-      type: 'recruitment',
-      description: 'Open recruitment untuk anggota baru periode 2024',
-      registrationRequired: true,
-    },
-    {
-      id: 4,
-      title: 'Rapat Koordinasi Organisasi',
-      date: '2024-03-12',
-      time: '13:00',
-      status: 'ongoing',
-      location: 'GK3-204',
-      organization: 'Semua Organisasi',
-      type: 'meeting',
-      description: 'Rapat koordinasi antar organisasi kemahasiswaan',
-      registrationRequired: false,
-    },
-    {
-      id: 5,
-      title: 'Festival Seni Mahasiswa',
-      date: '2024-03-05',
-      time: '18:00',
-      status: 'completed',
-      location: 'Aula Utama',
-      organization: 'UKM Seni',
-      type: 'event',
-      description: 'Festival seni mahasiswa dengan berbagai pertunjukan',
-      registrationRequired: false,
-    },
-    {
-      id: 6,
-      title: 'Pelatihan Manajemen Keuangan',
-      date: '2024-03-28',
-      time: '09:00',
-      status: 'upcoming',
-      location: 'GK3-301',
-      organization: 'Kemahasiswaan',
-      type: 'workshop',
-      description: 'Pelatihan manajemen keuangan untuk pengurus organisasi',
-      registrationRequired: true,
-    },
-  ];
+  const activities = [];
 
   const statusFilters = Object.values(ACTIVITY_STATUS).map(status => ({
     value: status,
@@ -227,7 +153,7 @@ const AdminActivities = () => {
                       {activity.description}
                     </p>
                   </div>
-                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0 ${
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium shrink-0 ${
                     activity.status === 'upcoming' 
                       ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                       : activity.status === 'ongoing'
