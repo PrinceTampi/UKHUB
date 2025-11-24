@@ -79,7 +79,7 @@ const ActivityCard = ({
               {title}
             </h3>
           </div>
-          <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1 flex-shrink-0 ${statusConfig[status]?.className || statusConfig.upcoming.className}`}>
+          <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1 shrink-0 ${statusConfig[status]?.className || statusConfig.upcoming.className}`}>
             {statusConfig[status]?.label || 'Akan Datang'}
           </span>
         </div>
@@ -102,13 +102,13 @@ const ActivityCard = ({
         <div className="space-y-3 pt-6 border-t border-gray-200 dark:border-gray-700">
           {date && (
             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-              <CalendarIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              <CalendarIcon className="w-5 h-5 text-gray-400 shrink-0" />
               <span>{time ? formatDateTime(`${date} ${time}`) : formatDate(date)}</span>
             </div>
           )}
           {location && (
             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-              <LocationIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              <LocationIcon className="w-5 h-5 text-gray-400 shrink-0" />
               <span>{location}</span>
             </div>
           )}

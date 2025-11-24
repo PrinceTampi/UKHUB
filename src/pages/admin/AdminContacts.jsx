@@ -99,7 +99,7 @@ const AdminContacts = () => {
             <Card.Body className="p-10">
               <div className="flex items-start justify-between mb-10">
                 <div className="flex items-start gap-5">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">
+                  <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
                     WR
                   </div>
                   <div className="flex-1">
@@ -119,14 +119,14 @@ const AdminContacts = () => {
               </div>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <LocationIcon className="w-6 h-6 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <LocationIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Alamat</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{CONTACT_INFO.WR3.address}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <MailIcon className="w-6 h-6 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <MailIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</p>
                     <a 
@@ -138,7 +138,7 @@ const AdminContacts = () => {
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <PhoneIcon className="w-6 h-6 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <PhoneIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Telepon</p>
                     <a 
@@ -150,7 +150,7 @@ const AdminContacts = () => {
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <ClockIcon className="w-6 h-6 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <ClockIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Jam Operasional</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Senin - Jumat: 08:00 - 16:00 WIB</p>
@@ -165,7 +165,7 @@ const AdminContacts = () => {
             <Card.Body className="p-10">
               <div className="flex items-start justify-between mb-10">
                 <div className="flex items-start gap-5">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">
+                  <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-green-500 to-green-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shrink-0">
                     KM
                   </div>
                   <div className="flex-1">
@@ -185,14 +185,14 @@ const AdminContacts = () => {
               </div>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <LocationIcon className="w-6 h-6 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <LocationIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Alamat</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{CONTACT_INFO.KEMAHASISWAAN.address}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <MailIcon className="w-6 h-6 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <MailIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</p>
                     <a 
@@ -204,7 +204,7 @@ const AdminContacts = () => {
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <PhoneIcon className="w-6 h-6 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <PhoneIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Telepon</p>
                     <a 
@@ -216,7 +216,7 @@ const AdminContacts = () => {
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <ClockIcon className="w-6 h-6 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <ClockIcon className="w-6 h-6 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Jam Operasional</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Senin - Jumat: 08:00 - 16:00 WIB</p>
@@ -250,7 +250,7 @@ const AdminContacts = () => {
                 <Card.Body className="p-10">
                   <div className="flex items-start justify-between mb-8">
                     <div className="flex items-start gap-5">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
+                      <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0">
                         {leader.photo ? (
                           <img 
                             src={leader.photo} 
@@ -287,14 +287,14 @@ const AdminContacts = () => {
                       href={`mailto:${leader.email}`}
                       className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
                     >
-                      <MailIcon className="w-5 h-5 flex-shrink-0" />
+                      <MailIcon className="w-5 h-5 shrink-0" />
                       <span className="truncate group-hover:underline">{leader.email}</span>
                     </a>
                     <a
                       href={`tel:${leader.phone.replace(/\s/g, '')}`}
                       className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
                     >
-                      <PhoneIcon className="w-5 h-5 flex-shrink-0" />
+                      <PhoneIcon className="w-5 h-5 shrink-0" />
                       <span className="group-hover:underline">{leader.phone}</span>
                     </a>
                   </div>
