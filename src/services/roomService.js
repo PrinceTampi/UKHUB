@@ -1,67 +1,211 @@
 import { v4 as uuidv4 } from 'uuid';
 
-// Key for localStorage
 const STORAGE_KEY = 'rooms_data';
 
-// Helper to get stored rooms or default empty array
-const getStoredRooms = () => {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+const DEFAULT_ROOMS = [
+  {
+    id: 'room-1',
+    name: 'GK3-204',
+    building: 'Gedung Kemahasiswaan',
+    location: 'Lantai 2',
+    facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System'],
+    accessHours: '08:00 - 17:00',
+    capacity: 30,
+    organization: 'BEM',
+    status: 'available',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'room-2',
+    name: 'GK3-205',
+    building: 'Gedung Kemahasiswaan',
+    location: 'Lantai 2',
+    facilities: ['AC', 'Proyektor', 'WiFi'],
+    accessHours: '08:00 - 17:00',
+    capacity: 20,
+    organization: 'DPM',
+    status: 'available',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'room-3',
+    name: 'GK3-301',
+    building: 'Gedung Kemahasiswaan',
+    location: 'Lantai 3',
+    facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System', 'Panggung'],
+    accessHours: '08:00 - 20:00',
+    capacity: 100,
+    organization: 'UKM Seni',
+    status: 'occupied',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'room-4',
+    name: 'GK3-102',
+    building: 'Gedung Kemahasiswaan',
+    location: 'Lantai 1',
+    facilities: ['AC', 'WiFi'],
+    accessHours: '08:00 - 17:00',
+    capacity: 15,
+    organization: 'HIMTI',
+    status: 'available',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'room-5',
+    name: 'GK3-103',
+    building: 'Gedung Kemahasiswaan',
+    location: 'Lantai 1',
+    facilities: ['AC', 'Proyektor', 'WiFi'],
+    accessHours: '08:00 - 17:00',
+    capacity: 25,
+    organization: 'HIMSI',
+    status: 'maintenance',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'room-6',
+    name: 'Aula Utama',
+    building: 'Gedung A',
+    location: 'Lantai 1',
+    facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System', 'Panggung', 'Layar Besar'],
+    accessHours: '08:00 - 22:00',
+    capacity: 200,
+    organization: 'Semua Organisasi',
+    status: 'available',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+];
+
+const getStorage = () => (typeof window !== 'undefined' ? window.localStorage : null);
+
+const seedRooms = () => DEFAULT_ROOMS.map((room) => ({
+  ...room,
+  id: room.id || uuidv4(),
+  createdAt: room.createdAt || new Date().toISOString(),
+  updatedAt: room.updatedAt || new Date().toISOString(),
+}));
+
+const readRooms = () => {
+  const storage = getStorage();
+  if (!storage) {
+    return seedRooms();
+  }
+
+  const raw = storage.getItem(STORAGE_KEY);
+  if (!raw) {
+    const seeded = seedRooms();
+    persistRooms(seeded);
+    return seeded;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('Invalid rooms format');
+    // Merge with default rooms if localStorage is empty or has fewer items
+    const defaultIds = new Set(DEFAULT_ROOMS.map(r => r.id));
+    const existingIds = new Set(parsed.map(r => r.id));
+    const missingDefaults = DEFAULT_ROOMS.filter(r => !existingIds.has(r.id));
+    return [...parsed, ...missingDefaults];
+  } catch {
+    const seeded = seedRooms();
+    persistRooms(seeded);
+    return seeded;
+  }
 };
 
-// Helper to save rooms array to localStorage
-const saveRooms = (rooms) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
+const persistRooms = (rooms) => {
+  const storage = getStorage();
+  if (!storage) return;
+  storage.setItem(STORAGE_KEY, JSON.stringify(rooms));
 };
 
-export const fetchRooms = async () => {
-  return new Promise((resolve) => {
-    const rooms = getStoredRooms();
-    resolve(rooms);
-  });
+const ensureCanMutate = (role) => {
+  const normalized = (role || '').toLowerCase();
+  if (!['admin', 'dosen'].includes(normalized)) {
+    throw new Error('Unauthorized: admin or dosen role required');
+  }
 };
 
-export const createRoom = async (room, userRole) => {
-  return new Promise((resolve, reject) => {
-    if (userRole !== 'admin' && userRole !== 'dosen') {
-      reject(new Error('Unauthorized: Cannot create room'));
-      return;
-    }
-    const rooms = getStoredRooms();
-    const newRoom = { ...room, id: uuidv4() };
-    rooms.push(newRoom);
-    saveRooms(rooms);
-    resolve(newRoom);
-  });
+// Standard service functions
+export const getAll = async () => {
+  return readRooms();
 };
 
-export const updateRoom = async (id, updatedRoom, userRole) => {
-  return new Promise((resolve, reject) => {
-    if (userRole !== 'admin' && userRole !== 'dosen') {
-      reject(new Error('Unauthorized: Cannot update room'));
-      return;
-    }
-    let rooms = getStoredRooms();
-    const index = rooms.findIndex((room) => room.id === id);
-    if (index === -1) {
-      reject(new Error('Room not found'));
-      return;
-    }
-    rooms[index] = { ...rooms[index], ...updatedRoom };
-    saveRooms(rooms);
-    resolve(rooms[index]);
-  });
+export const getById = async (id) => {
+  const rooms = readRooms();
+  const room = rooms.find((r) => r.id === id);
+  if (!room) {
+    throw new Error('Room not found');
+  }
+  return room;
 };
 
-export const deleteRoom = async (id, userRole) => {
-  return new Promise((resolve, reject) => {
-    if (userRole !== 'admin' && userRole !== 'dosen') {
-      reject(new Error('Unauthorized: Cannot delete room'));
-      return;
-    }
-    let rooms = getStoredRooms();
-    rooms = rooms.filter((room) => room.id !== id);
-    saveRooms(rooms);
-    resolve();
-  });
+export const add = async (room, userRole) => {
+  ensureCanMutate(userRole);
+  const rooms = readRooms();
+  const now = new Date().toISOString();
+  const newRoom = {
+    id: uuidv4(),
+    name: (room.name || '').trim(),
+    building: (room.building || '').trim(),
+    location: (room.location || '').trim(),
+    facilities: Array.isArray(room.facilities) ? room.facilities : [],
+    accessHours: (room.accessHours || '08:00 - 17:00').trim(),
+    capacity: parseInt(room.capacity) || 0,
+    organization: (room.organization || '').trim(),
+    status: room.status || 'available',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (!newRoom.name) {
+    throw new Error('Room name is required');
+  }
+
+  rooms.push(newRoom);
+  persistRooms(rooms);
+  return newRoom;
 };
+
+export const update = async (id, updates, userRole) => {
+  ensureCanMutate(userRole);
+  const rooms = readRooms();
+  const index = rooms.findIndex((r) => r.id === id);
+  if (index === -1) {
+    throw new Error('Room not found');
+  }
+
+  const updated = {
+    ...rooms[index],
+    ...updates,
+    id: rooms[index].id, // Preserve ID
+    updatedAt: new Date().toISOString(),
+  };
+
+  rooms[index] = updated;
+  persistRooms(rooms);
+  return updated;
+};
+
+export const remove = async (id, userRole) => {
+  ensureCanMutate(userRole);
+  const rooms = readRooms();
+  const filtered = rooms.filter((r) => r.id !== id);
+  if (filtered.length === rooms.length) {
+    throw new Error('Room not found');
+  }
+  persistRooms(filtered);
+};
+
+// Legacy function names for backward compatibility
+export const fetchRooms = getAll;
+export const createRoom = add;
+export const updateRoom = update;
+export const deleteRoom = remove;

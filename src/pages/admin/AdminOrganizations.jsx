@@ -1,14 +1,30 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import SearchBar from '../../components/ui/SearchBar';
 import { OrganizationIcon, PlusIcon } from '../../components/icons';
-import { fetchOrganizations, createOrganization, updateOrganization, deleteOrganization, fetchOrganizationCategories } from '../../services/organizationService';
+import {
+  fetchOrganizations,
+  fetchOrganizationCategories,
+  createOrganization,
+  updateOrganization,
+  deleteOrganization,
+  subscribeToOrganizationChanges,
+} from '../../services/organizationService';
 import { useAuth } from '../../context/AuthContext';
 
+const defaultFormState = {
+  name: '',
+  abbreviation: '',
+  category: '',
+  description: '',
+  status: 'active',
+  pembina: '',
+  contactEmail: '',
+  contactPhone: '',
+};
+
 const AdminOrganizations = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [organizations, setOrganizations] = useState([]);
@@ -19,59 +35,56 @@ const AdminOrganizations = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [filters, setFilters] = useState([]);
 
-  // Form state
   const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
-  const [formData, setFormData] = useState({
-    name: '',
-    abbreviation: '',
-    category: '',
-    description: '',
-    status: 'active',
-    pembina: '',
-    contactEmail: '',
-  });
+  const [formMode, setFormMode] = useState('create');
+  const [formData, setFormData] = useState(defaultFormState);
   const [currentOrg, setCurrentOrg] = useState(null);
   const [formError, setFormError] = useState(null);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    loadOrganizations();
-    loadCategories();
+    let isMounted = true;
+
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [orgs, categories] = await Promise.all([
+          fetchOrganizations(),
+          fetchOrganizationCategories(),
+        ]);
+        if (!isMounted) return;
+        setOrganizations(orgs);
+        setFilters(categories.map((cat) => ({ value: cat, label: cat })));
+        setError(null);
+      } catch (err) {
+        if (isMounted) setError(err.message || 'Failed to load organizations');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadData();
+    const unsubscribe = subscribeToOrganizationChanges((snapshot) => {
+      if (isMounted) setOrganizations(snapshot);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
-  const loadOrganizations = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchOrganizations();
-      setOrganizations(data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load organizations');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const loadCategories = async () => {
-    try {
-      const categories = await fetchOrganizationCategories();
-      const filtersData = categories.map(cat => ({ value: cat, label: cat }));
-      setFilters(filtersData);
-    } catch {
-      setFilters([]);
-    }
-  };
-
-
-  const filteredOrganizations = organizations.filter(org => {
-    const matchesSearch =
-      org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      org.abbreviation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      org.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || org.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredOrganizations = useMemo(() => {
+    return organizations.filter(org => {
+      const matchesSearch =
+        org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.abbreviation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = !selectedCategory || org.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [organizations, searchTerm, selectedCategory]);
 
 
   const handleSearch = (value) => {
@@ -84,15 +97,7 @@ const AdminOrganizations = () => {
 
   const openCreateForm = () => {
     setFormMode('create');
-    setFormData({
-      name: '',
-      abbreviation: '',
-      category: '',
-      description: '',
-      status: 'active',
-      pembina: '',
-      contactEmail: '',
-    });
+    setFormData(defaultFormState);
     setFormError(null);
     setShowForm(true);
     setCurrentOrg(null);
@@ -108,6 +113,7 @@ const AdminOrganizations = () => {
       status: org.status || 'active',
       pembina: org.pembina || '',
       contactEmail: org.contact?.email || '',
+      contactPhone: org.contact?.phone || '',
     });
     setFormError(null);
     setShowForm(true);
@@ -145,7 +151,7 @@ const AdminOrganizations = () => {
           description: formData.description,
           status: formData.status,
           pembina: formData.pembina,
-          contact: { email: formData.contactEmail },
+          contact: { email: formData.contactEmail, phone: formData.contactPhone },
         };
         const created = await createOrganization(newOrg, user.role);
         setOrganizations(prev => [...prev, created]);
@@ -157,7 +163,7 @@ const AdminOrganizations = () => {
           description: formData.description,
           status: formData.status,
           pembina: formData.pembina,
-          contact: { email: formData.contactEmail },
+          contact: { email: formData.contactEmail, phone: formData.contactPhone },
         };
         const updatedOrg = await updateOrganization(currentOrg.id, updated, user.role);
         setOrganizations(prev =>
@@ -383,6 +389,15 @@ const AdminOrganizations = () => {
                   name="contactEmail"
                   type="email"
                   value={formData.contactEmail}
+                  onChange={handleFormChange}
+                  className="w-full border rounded px-3 py-2 dark:bg-gray-700"
+                />
+              </div>
+              <div>
+                <label className="block mb-1">Contact Phone</label>
+                <input
+                  name="contactPhone"
+                  value={formData.contactPhone}
                   onChange={handleFormChange}
                   className="w-full border rounded px-3 py-2 dark:bg-gray-700"
                 />

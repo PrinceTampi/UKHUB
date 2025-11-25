@@ -1,90 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
 import ActivityCard from '../components/ui/ActivityCard';
 import { ACTIVITY_STATUS } from '../utils/constants';
 import { ActivityIcon, PlusIcon } from '../components/icons';
+import { getAll } from '../services/activityService';
 
 const Activities = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - in real app, this would come from API
-  const activities = [
-    {
-      id: 1,
-      title: 'Workshop Leadership & Management',
-      date: '2024-03-15',
-      time: '09:00',
-      status: 'upcoming',
-      location: 'Aula Utama, Gedung A',
-      organization: 'BEM',
-      type: 'workshop',
-      description: 'Workshop untuk meningkatkan kemampuan kepemimpinan dan manajemen organisasi',
-      registrationRequired: true,
-    },
-    {
-      id: 2,
-      title: 'Seminar Kewirausahaan Mahasiswa',
-      date: '2024-03-20',
-      time: '14:00',
-      status: 'upcoming',
-      location: 'Ruang Seminar, Gedung B',
-      organization: 'Kemahasiswaan',
-      type: 'seminar',
-      description: 'Seminar tentang kewirausahaan untuk mahasiswa dengan pembicara dari industri',
-      registrationRequired: true,
-    },
-    {
-      id: 3,
-      title: 'Open Recruitment Anggota Baru',
-      date: '2024-03-25',
-      time: '10:00',
-      status: 'upcoming',
-      location: 'Gedung Kemahasiswaan',
-      organization: 'BEM',
-      type: 'recruitment',
-      description: 'Open recruitment untuk anggota baru periode 2024',
-      registrationRequired: true,
-    },
-    {
-      id: 4,
-      title: 'Rapat Koordinasi Organisasi',
-      date: '2024-03-12',
-      time: '13:00',
-      status: 'ongoing',
-      location: 'GK3-204',
-      organization: 'Semua Organisasi',
-      type: 'meeting',
-      description: 'Rapat koordinasi antar organisasi kemahasiswaan',
-      registrationRequired: false,
-    },
-    {
-      id: 5,
-      title: 'Festival Seni Mahasiswa',
-      date: '2024-03-05',
-      time: '18:00',
-      status: 'completed',
-      location: 'Aula Utama',
-      organization: 'UKM Seni',
-      type: 'event',
-      description: 'Festival seni mahasiswa dengan berbagai pertunjukan',
-      registrationRequired: false,
-    },
-    {
-      id: 6,
-      title: 'Pelatihan Manajemen Keuangan',
-      date: '2024-03-28',
-      time: '09:00',
-      status: 'upcoming',
-      location: 'GK3-301',
-      organization: 'Kemahasiswaan',
-      type: 'workshop',
-      description: 'Pelatihan manajemen keuangan untuk pengurus organisasi',
-      registrationRequired: true,
-    },
-  ];
+  useEffect(() => {
+    loadActivities();
+  }, []);
+
+  const loadActivities = async () => {
+    setLoading(true);
+    try {
+      const data = await getAll();
+      setActivities(data);
+    } catch (error) {
+      console.error('Error loading activities:', error);
+      setActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const statusFilters = Object.values(ACTIVITY_STATUS).map(status => ({
     value: status,
@@ -110,6 +54,10 @@ const Activities = () => {
     setSelectedStatus(value);
   };
 
+  if (loading) {
+    return <div className="max-w-7xl mx-auto p-8">Loading activities...</div>;
+  }
+
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
       {/* Page Header */}
@@ -123,10 +71,6 @@ const Activities = () => {
               Daftar kegiatan dan acara yang dilaksanakan oleh organisasi kemahasiswaan
             </p>
           </div>
-          <Button variant="primary" size="md" className="hidden md:flex">
-            <PlusIcon className="w-5 h-5 mr-2" />
-            Tambah Kegiatan
-          </Button>
         </div>
 
         {/* Search and Filter */}
@@ -187,4 +131,3 @@ const Activities = () => {
 };
 
 export default Activities;
-

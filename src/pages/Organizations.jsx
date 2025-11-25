@@ -1,114 +1,112 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
 import OrganizationCard from '../components/ui/OrganizationCard';
-import { ORGANIZATION_CATEGORIES } from '../utils/constants';
 import { OrganizationIcon, PlusIcon } from '../components/icons';
-import { fetchOrganizations, createOrganization, updateOrganization, deleteOrganization } from '../services/organizationService';
+import { USER_ROLES } from '../utils/constants';
+import {
+  fetchOrganizations,
+  fetchOrganizationCategories,
+  createOrganization,
+  updateOrganization,
+  deleteOrganization,
+  resetOrganizations,
+  subscribeToOrganizationChanges,
+} from '../services/organizationService';
 import { useAuth } from '../context/AuthContext';
+
+const defaultFormState = {
+  name: '',
+  abbreviation: '',
+  category: '',
+  description: '',
+  status: 'active',
+  pembina: '',
+  contactEmail: '',
+  contactPhone: '',
+};
 
 const Organizations = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Utility to clear dummy organization data from localStorage
-  const clearDummyData = () => {
-    if (window.confirm('Are you sure you want to CLEAR all existing organization data? This action cannot be undone.')) {
-      localStorage.removeItem('organizations_data');
-      // Reload organizations state after clearing
-      fetchOrganizations().then(data => {
-        setOrganizations(data);
-      });
-    }
-  };
-  const [selectedCategory, setSelectedCategory] = useState('');
+
   const [organizations, setOrganizations] = useState([]);
+  const [categoryFilters, setCategoryFilters] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // UI state for modals and form
   const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
-  const [currentOrg, setCurrentOrg] = useState(null); // Organization for editing
-  const [formData, setFormData] = useState({
-    name: '',
-    abbreviation: '',
-    category: '',
-    description: '',
-    status: 'active',
-    pembina: '',
-    contactEmail: '',
-  });
+  const [formMode, setFormMode] = useState('create');
+  const [currentOrg, setCurrentOrg] = useState(null);
+  const [formData, setFormData] = useState(defaultFormState);
   const [processing, setProcessing] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  const canManage = user?.role === USER_ROLES.ADMIN;
+
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
       setLoading(true);
       try {
-        const data = await fetchOrganizations();
-        setOrganizations(data);
+        const [orgs, categories] = await Promise.all([
+          fetchOrganizations(),
+          fetchOrganizationCategories(),
+        ]);
+        if (!isMounted) return;
+        setOrganizations(orgs);
+        setCategoryFilters(categories.map((cat) => ({ value: cat, label: cat })));
         setError(null);
       } catch (err) {
-        setError('Failed to load organizations');
+        if (isMounted) {
+          setError(err.message || 'Gagal memuat organisasi');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+
     loadData();
+    const unsubscribe = subscribeToOrganizationChanges((snapshot) => {
+      if (isMounted) setOrganizations(snapshot);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
-  const filters = ORGANIZATION_CATEGORIES.map((cat) => ({
-    value: cat,
-    label: cat,
-  }));
-
-  const filteredOrganizations = organizations.filter(
-    (org) =>
-      (org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredOrganizations = useMemo(() => {
+    return organizations.filter((org) => {
+      const matchesSearch =
+        org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         org.abbreviation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        org.description?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (!selectedCategory || org.category === selectedCategory)
-  );
-
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-  };
-
-  const handleFilterChange = (value) => {
-    setSelectedCategory(value);
-  };
-
-  const handleOrganizationClick = (orgId) => {
-    navigate(`/organizations/${orgId}`);
-  };
-
-const canEdit = user && (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.DOSEN);
-
-  // Form handlers
-  const openCreateForm = () => {
-    console.log('openCreateForm called');
-    setFormMode('create');
-    setFormData({
-      name: '',
-      abbreviation: '',
-      category: '',
-      description: '',
-      status: 'active',
-      pembina: '',
-      contactEmail: '',
+        org.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        !selectedCategory || org.category === selectedCategory;
+      return matchesSearch && matchesCategory;
     });
+  }, [organizations, searchTerm, selectedCategory]);
+
+  const openCreateForm = () => {
+    setFormMode('create');
+    setCurrentOrg(null);
+    setFormData(defaultFormState);
     setFormError(null);
     setShowForm(true);
-    setCurrentOrg(null);
   };
 
   const openEditForm = (org) => {
-    console.log('openEditForm called for org:', org);
     setFormMode('edit');
+    setCurrentOrg(org);
     setFormData({
       name: org.name || '',
       abbreviation: org.abbreviation || '',
@@ -117,81 +115,89 @@ const canEdit = user && (user.role === USER_ROLES.ADMIN || user.role === USER_RO
       status: org.status || 'active',
       pembina: org.pembina || '',
       contactEmail: org.contact?.email || '',
+      contactPhone: org.contact?.phone || '',
     });
     setFormError(null);
     setShowForm(true);
-    setCurrentOrg(org);
   };
 
   const closeForm = () => {
-    console.log('closeForm called');
     setShowForm(false);
     setCurrentOrg(null);
     setFormError(null);
+    setProcessing(false);
   };
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
+  const handleFormSubmit = async (event) => {
+    event.preventDefault();
+    if (!canManage) return;
+
     setProcessing(true);
     setFormError(null);
 
-    // Validate required fields
     if (!formData.name || !formData.category) {
-      setFormError('Name and Category are required');
+      setFormError('Name dan Category wajib diisi.');
       setProcessing(false);
       return;
     }
 
+    const payload = {
+      name: formData.name,
+      abbreviation: formData.abbreviation,
+      category: formData.category,
+      description: formData.description,
+      status: formData.status,
+      pembina: formData.pembina,
+      contact: {
+        email: formData.contactEmail,
+        phone: formData.contactPhone,
+      },
+    };
+
     try {
       if (formMode === 'create') {
-        const newOrg = {
-          name: formData.name,
-          abbreviation: formData.abbreviation,
-          category: formData.category,
-          description: formData.description,
-          status: formData.status,
-          pembina: formData.pembina,
-          contact: { email: formData.contactEmail },
-        };
-        const created = await createOrganization(newOrg, user.role);
-        setOrganizations(prev => [...prev, created]);
+        const created = await createOrganization(payload, user.role);
+        setOrganizations((prev) => [...prev, created]);
       } else if (formMode === 'edit' && currentOrg) {
-        const updated = {
-          name: formData.name,
-          abbreviation: formData.abbreviation,
-          category: formData.category,
-          description: formData.description,
-          status: formData.status,
-          pembina: formData.pembina,
-          contact: { email: formData.contactEmail },
-        };
-        const updatedOrg = await updateOrganization(currentOrg.id, updated, user.role);
-        setOrganizations(prev =>
-          prev.map(org => (org.id === currentOrg.id ? updatedOrg : org))
+        const updated = await updateOrganization(currentOrg.id, payload, user.role);
+        setOrganizations((prev) =>
+          prev.map((org) => (org.id === currentOrg.id ? updated : org))
         );
       }
       closeForm();
-    } catch (error) {
-      setFormError(error.message || 'Failed to save organization');
+    } catch (err) {
+      setFormError(err.message || 'Gagal menyimpan organisasi');
+    } finally {
+      setProcessing(false);
     }
-    setProcessing(false);
   };
 
   const handleDelete = async (orgId) => {
-    console.log('handleDelete called for orgId:', orgId);
-    if (!window.confirm('Are you sure you want to delete this organization?')) return;
+    if (!canManage) return;
+    if (!window.confirm('Hapus organisasi ini?')) return;
     try {
       await deleteOrganization(orgId, user.role);
-      setOrganizations(prev => prev.filter(org => org.id !== orgId));
-      console.log('Organization deleted:', orgId);
-    } catch (error) {
-      alert(error.message || 'Failed to delete organization');
-      console.error('Delete error:', error);
+      setOrganizations((prev) => prev.filter((org) => org.id !== orgId));
+    } catch (err) {
+      alert(err.message || 'Gagal menghapus organisasi');
+    }
+  };
+
+  const handleResetData = async () => {
+    if (!canManage) return;
+    if (!window.confirm('Reset seluruh data organisasi ke default?')) return;
+    try {
+      const seeded = await resetOrganizations(user.role);
+      setOrganizations(seeded);
+      setSearchTerm('');
+      setSelectedCategory('');
+    } catch (err) {
+      alert(err.message || 'Gagal mereset data');
     }
   };
 
@@ -216,22 +222,16 @@ const canEdit = user && (user.role === USER_ROLES.ADMIN || user.role === USER_RO
               Jelajahi semua organisasi kemahasiswaan di universitas
             </p>
           </div>
-          {canEdit && (
-            <>
-              <Button
-                variant="danger"
-                size="md"
-                className="mr-4 hidden md:inline-flex"
-                onClick={clearDummyData}
-                title="Clear all organization data"
-              >
-                Clear Dummy Data
+          {canManage && (
+            <div className="flex flex-col md:flex-row gap-4">
+              <Button variant="danger" size="md" className="hidden md:inline-flex" onClick={handleResetData}>
+                Reset Data
               </Button>
               <Button variant="primary" size="md" className="hidden md:inline-flex" onClick={openCreateForm}>
                 <PlusIcon className="w-5 h-5 mr-2" />
                 Tambah Organisasi
               </Button>
-            </>
+            </div>
           )}
         </div>
 
@@ -239,9 +239,9 @@ const canEdit = user && (user.role === USER_ROLES.ADMIN || user.role === USER_RO
         <div className="mb-16">
           <SearchBar
             placeholder="Cari organisasi (nama, singkatan, deskripsi)..."
-            onSearch={handleSearch}
-            onFilterChange={handleFilterChange}
-            filters={filters}
+            onSearch={setSearchTerm}
+            onFilterChange={setSelectedCategory}
+            filters={categoryFilters}
             className="w-full"
           />
         </div>
@@ -263,10 +263,10 @@ const canEdit = user && (user.role === USER_ROLES.ADMIN || user.role === USER_RO
             <div key={org.id}>
               <OrganizationCard
                 organization={org}
-                onClick={() => handleOrganizationClick(org.id)}
+                onClick={() => navigate(`/organizations/${org.id}`)}
                 className="hover-lift"
               />
-              {canEdit && (
+              {canManage && (
                 <div className="flex justify-end space-x-4 mt-2">
                   <Button size="sm" variant="outline" onClick={() => openEditForm(org)}>
                     Edit
@@ -381,6 +381,15 @@ const canEdit = user && (user.role === USER_ROLES.ADMIN || user.role === USER_RO
                   name="contactEmail"
                   type="email"
                   value={formData.contactEmail}
+                  onChange={handleFormChange}
+                  className="w-full border rounded px-3 py-2 dark:bg-gray-700"
+                />
+              </div>
+              <div>
+                <label className="block mb-1">Contact Phone</label>
+                <input
+                  name="contactPhone"
+                  value={formData.contactPhone}
                   onChange={handleFormChange}
                   className="w-full border rounded px-3 py-2 dark:bg-gray-700"
                 />

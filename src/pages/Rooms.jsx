@@ -1,83 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
 import RoomCard from '../components/ui/RoomCard';
 import { BuildingIcon, PlusIcon } from '../components/icons';
+import { getAll } from '../services/roomService';
 
 const Rooms = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBuilding, setSelectedBuilding] = useState('');
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - in real app, this would come from API
-  const rooms = [
-    {
-      id: 1,
-      name: 'GK3-204',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 2',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System'],
-      accessHours: '08:00 - 17:00',
-      capacity: 30,
-      organization: 'BEM',
-      status: 'available',
-    },
-    {
-      id: 2,
-      name: 'GK3-205',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 2',
-      facilities: ['AC', 'Proyektor', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 20,
-      organization: 'DPM',
-      status: 'available',
-    },
-    {
-      id: 3,
-      name: 'GK3-301',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 3',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System', 'Panggung'],
-      accessHours: '08:00 - 20:00',
-      capacity: 100,
-      organization: 'UKM Seni',
-      status: 'occupied',
-    },
-    {
-      id: 4,
-      name: 'GK3-102',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 1',
-      facilities: ['AC', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 15,
-      organization: 'HIMTI',
-      status: 'available',
-    },
-    {
-      id: 5,
-      name: 'GK3-103',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 1',
-      facilities: ['AC', 'Proyektor', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 25,
-      organization: 'HIMSI',
-      status: 'maintenance',
-    },
-    {
-      id: 6,
-      name: 'Aula Utama',
-      building: 'Gedung A',
-      location: 'Lantai 1',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System', 'Panggung', 'Layar Besar'],
-      accessHours: '08:00 - 22:00',
-      capacity: 200,
-      organization: 'Semua Organisasi',
-      status: 'available',
-    },
-  ];
+  useEffect(() => {
+    loadRooms();
+  }, []);
+
+  const loadRooms = async () => {
+    setLoading(true);
+    try {
+      const data = await getAll();
+      setRooms(data);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+      setRooms([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const buildings = [...new Set(rooms.map(room => room.building))];
   const buildingFilters = buildings.map(building => ({
@@ -101,6 +51,10 @@ const Rooms = () => {
     setSelectedBuilding(value);
   };
 
+  if (loading) {
+    return <div className="max-w-7xl mx-auto p-8">Loading rooms...</div>;
+  }
+
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
       {/* Page Header */}
@@ -114,10 +68,6 @@ const Rooms = () => {
               Informasi lengkap tentang ruangan yang tersedia untuk organisasi kemahasiswaan
             </p>
           </div>
-          <Button variant="primary" size="md" className="hidden md:flex">
-            <PlusIcon className="w-5 h-5 mr-2" />
-            Tambah Ruangan
-          </Button>
         </div>
 
         {/* Search and Filter */}
@@ -178,4 +128,3 @@ const Rooms = () => {
 };
 
 export default Rooms;
-

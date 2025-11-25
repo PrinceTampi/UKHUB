@@ -1,67 +1,207 @@
 import { v4 as uuidv4 } from 'uuid';
+import { CONTACT_INFO } from '../utils/constants';
 
-// Key for localStorage
 const STORAGE_KEY = 'contacts_data';
 
-// Helper to get stored contacts or default empty array
-const getStoredContacts = () => {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+const DEFAULT_CONTACTS = [
+  {
+    id: 'contact-wr3',
+    type: 'official',
+    name: CONTACT_INFO.WR3.name,
+    abbreviation: 'WR',
+    position: 'Wakil Rektor Bidang Kemahasiswaan',
+    email: CONTACT_INFO.WR3.email,
+    phone: CONTACT_INFO.WR3.phone,
+    address: CONTACT_INFO.WR3.address,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'contact-kemahasiswaan',
+    type: 'official',
+    name: CONTACT_INFO.KEMAHASISWAAN.name,
+    abbreviation: 'KM',
+    position: 'Divisi Kemahasiswaan',
+    email: CONTACT_INFO.KEMAHASISWAAN.email,
+    phone: CONTACT_INFO.KEMAHASISWAAN.phone,
+    address: CONTACT_INFO.KEMAHASISWAAN.address,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'contact-leader-1',
+    type: 'leader',
+    name: 'Ketua BEM',
+    email: 'ketua.bem@universitas.ac.id',
+    phone: '+62 123 456 7892',
+    organization: 'BEM',
+    position: 'Ketua Umum',
+    photo: null,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'contact-leader-2',
+    type: 'leader',
+    name: 'Ketua DPM',
+    email: 'ketua.dpm@universitas.ac.id',
+    phone: '+62 123 456 7893',
+    organization: 'DPM',
+    position: 'Ketua Umum',
+    photo: null,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'contact-leader-3',
+    type: 'leader',
+    name: 'Ketua HIMTI',
+    email: 'ketua.himti@universitas.ac.id',
+    phone: '+62 123 456 7894',
+    organization: 'HIMTI',
+    position: 'Ketua',
+    photo: null,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'contact-leader-4',
+    type: 'leader',
+    name: 'Ketua HIMSI',
+    email: 'ketua.himsi@universitas.ac.id',
+    phone: '+62 123 456 7895',
+    organization: 'HIMSI',
+    position: 'Ketua',
+    photo: null,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  },
+];
+
+const getStorage = () => (typeof window !== 'undefined' ? window.localStorage : null);
+
+const seedContacts = () => DEFAULT_CONTACTS.map((contact) => ({
+  ...contact,
+  id: contact.id || uuidv4(),
+  createdAt: contact.createdAt || new Date().toISOString(),
+  updatedAt: contact.updatedAt || new Date().toISOString(),
+}));
+
+const readContacts = () => {
+  const storage = getStorage();
+  if (!storage) {
+    return seedContacts();
+  }
+
+  const raw = storage.getItem(STORAGE_KEY);
+  if (!raw) {
+    const seeded = seedContacts();
+    persistContacts(seeded);
+    return seeded;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('Invalid contacts format');
+    // Merge with default contacts
+    const defaultIds = new Set(DEFAULT_CONTACTS.map(c => c.id));
+    const existingIds = new Set(parsed.map(c => c.id));
+    const missingDefaults = DEFAULT_CONTACTS.filter(c => !existingIds.has(c.id));
+    return [...parsed, ...missingDefaults];
+  } catch {
+    const seeded = seedContacts();
+    persistContacts(seeded);
+    return seeded;
+  }
 };
 
-// Helper to save contacts array to localStorage
-const saveContacts = (contacts) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+const persistContacts = (contacts) => {
+  const storage = getStorage();
+  if (!storage) return;
+  storage.setItem(STORAGE_KEY, JSON.stringify(contacts));
 };
 
-export const fetchContacts = async () => {
-  return new Promise((resolve) => {
-    const contacts = getStoredContacts();
-    resolve(contacts);
-  });
+const ensureCanMutate = (role) => {
+  const normalized = (role || '').toLowerCase();
+  if (!['admin', 'dosen'].includes(normalized)) {
+    throw new Error('Unauthorized: admin or dosen role required');
+  }
 };
 
-export const createContact = async (contact, userRole) => {
-  return new Promise((resolve, reject) => {
-    if (userRole !== 'admin' && userRole !== 'dosen') {
-      reject(new Error('Unauthorized: Cannot create contact'));
-      return;
-    }
-    const contacts = getStoredContacts();
-    const newContact = { ...contact, id: uuidv4() };
-    contacts.push(newContact);
-    saveContacts(contacts);
-    resolve(newContact);
-  });
+// Standard service functions
+export const getAll = async () => {
+  return readContacts();
 };
 
-export const updateContact = async (id, updatedContact, userRole) => {
-  return new Promise((resolve, reject) => {
-    if (userRole !== 'admin' && userRole !== 'dosen') {
-      reject(new Error('Unauthorized: Cannot update contact'));
-      return;
-    }
-    let contacts = getStoredContacts();
-    const index = contacts.findIndex((contact) => contact.id === id);
-    if (index === -1) {
-      reject(new Error('Contact not found'));
-      return;
-    }
-    contacts[index] = { ...contacts[index], ...updatedContact };
-    saveContacts(contacts);
-    resolve(contacts[index]);
-  });
+export const getById = async (id) => {
+  const contacts = readContacts();
+  const contact = contacts.find((c) => c.id === id);
+  if (!contact) {
+    throw new Error('Contact not found');
+  }
+  return contact;
 };
 
-export const deleteContact = async (id, userRole) => {
-  return new Promise((resolve, reject) => {
-    if (userRole !== 'admin' && userRole !== 'dosen') {
-      reject(new Error('Unauthorized: Cannot delete contact'));
-      return;
-    }
-    let contacts = getStoredContacts();
-    contacts = contacts.filter((contact) => contact.id !== id);
-    saveContacts(contacts);
-    resolve();
-  });
+export const add = async (contact, userRole) => {
+  ensureCanMutate(userRole);
+  const contacts = readContacts();
+  const now = new Date().toISOString();
+  const newContact = {
+    id: uuidv4(),
+    type: contact.type || 'leader',
+    name: (contact.name || '').trim(),
+    abbreviation: (contact.abbreviation || contact.name?.substring(0, 2).toUpperCase() || '').trim(),
+    position: (contact.position || '').trim(),
+    email: (contact.email || '').trim(),
+    phone: (contact.phone || '').trim(),
+    address: (contact.address || '').trim(),
+    organization: (contact.organization || '').trim(),
+    photo: contact.photo || null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (!newContact.name || !newContact.email) {
+    throw new Error('Contact name and email are required');
+  }
+
+  contacts.push(newContact);
+  persistContacts(contacts);
+  return newContact;
 };
+
+export const update = async (id, updates, userRole) => {
+  ensureCanMutate(userRole);
+  const contacts = readContacts();
+  const index = contacts.findIndex((c) => c.id === id);
+  if (index === -1) {
+    throw new Error('Contact not found');
+  }
+
+  const updated = {
+    ...contacts[index],
+    ...updates,
+    id: contacts[index].id, // Preserve ID
+    updatedAt: new Date().toISOString(),
+  };
+
+  contacts[index] = updated;
+  persistContacts(contacts);
+  return updated;
+};
+
+export const remove = async (id, userRole) => {
+  ensureCanMutate(userRole);
+  const contacts = readContacts();
+  const filtered = contacts.filter((c) => c.id !== id);
+  if (filtered.length === contacts.length) {
+    throw new Error('Contact not found');
+  }
+  persistContacts(filtered);
+};
+
+// Legacy function names for backward compatibility
+export const fetchContacts = getAll;
+export const createContact = add;
+export const updateContact = update;
+export const deleteContact = remove;

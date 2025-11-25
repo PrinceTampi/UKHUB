@@ -1,16 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import SearchBar from '../../components/ui/SearchBar';
 import ActivityCard from '../../components/ui/ActivityCard';
 import { ACTIVITY_STATUS } from '../../utils/constants';
-import { ActivityIcon, PlusIcon, PencilIcon, TrashIcon } from '../../components/icons';
+import { ActivityIcon, PlusIcon, PencilIcon, TrashIcon, XIcon } from '../../components/icons';
+import { getAll, add, update, remove } from '../../services/activityService';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminActivities = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState('create');
+  const [currentActivity, setCurrentActivity] = useState(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    date: new Date().toISOString().split('T')[0],
+    time: '09:00',
+    status: 'upcoming',
+    location: '',
+    organization: '',
+    type: 'event',
+    description: '',
+    registrationRequired: false,
+  });
+  const [processing, setProcessing] = useState(false);
+  const [formError, setFormError] = useState(null);
 
-  const activities = [];
+  useEffect(() => {
+    loadActivities();
+  }, []);
+
+  const loadActivities = async () => {
+    setLoading(true);
+    try {
+      const data = await getAll();
+      setActivities(data);
+    } catch (error) {
+      console.error('Error loading activities:', error);
+      setActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const statusFilters = Object.values(ACTIVITY_STATUS).map(status => ({
     value: status,
@@ -36,6 +72,110 @@ const AdminActivities = () => {
     setSelectedStatus(value);
   };
 
+  const openCreateForm = () => {
+    setFormMode('create');
+    setCurrentActivity(null);
+    setFormData({
+      title: '',
+      date: new Date().toISOString().split('T')[0],
+      time: '09:00',
+      status: 'upcoming',
+      location: '',
+      organization: '',
+      type: 'event',
+      description: '',
+      registrationRequired: false,
+    });
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const openEditForm = (activity) => {
+    setFormMode('edit');
+    setCurrentActivity(activity);
+    setFormData({
+      title: activity.title || '',
+      date: activity.date || new Date().toISOString().split('T')[0],
+      time: activity.time || '09:00',
+      status: activity.status || 'upcoming',
+      location: activity.location || '',
+      organization: activity.organization || '',
+      type: activity.type || 'event',
+      description: activity.description || '',
+      registrationRequired: activity.registrationRequired || false,
+    });
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setFormMode('create');
+    setCurrentActivity(null);
+    setFormError(null);
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setProcessing(true);
+    setFormError(null);
+
+    if (!formData.title) {
+      setFormError('Title wajib diisi.');
+      setProcessing(false);
+      return;
+    }
+
+    const payload = {
+      title: formData.title,
+      date: formData.date,
+      time: formData.time,
+      status: formData.status,
+      location: formData.location,
+      organization: formData.organization,
+      type: formData.type,
+      description: formData.description,
+      registrationRequired: formData.registrationRequired,
+    };
+
+    try {
+      if (formMode === 'create') {
+        const created = await add(payload, user?.role);
+        setActivities(prev => [...prev, created]);
+      } else if (formMode === 'edit' && currentActivity) {
+        const updated = await update(currentActivity.id, payload, user?.role);
+        setActivities(prev => prev.map(a => a.id === currentActivity.id ? updated : a));
+      }
+      closeForm();
+    } catch (err) {
+      setFormError(err.message || 'Gagal menyimpan kegiatan');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleDelete = async (activityId) => {
+    if (!window.confirm('Hapus kegiatan ini?')) return;
+    try {
+      await remove(activityId, user?.role);
+      setActivities(prev => prev.filter(a => a.id !== activityId));
+    } catch (err) {
+      alert(err.message || 'Gagal menghapus kegiatan');
+    }
+  };
+
+  if (loading) {
+    return <div className="max-w-7xl mx-auto p-8">Loading activities...</div>;
+  }
+
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
       {/* Page Header */}
@@ -49,7 +189,7 @@ const AdminActivities = () => {
               Kelola kegiatan dan acara organisasi kemahasiswaan
             </p>
           </div>
-          <Button variant="primary" size="md" className="hidden md:flex">
+          <Button variant="primary" size="md" className="hidden md:flex" onClick={openCreateForm}>
             <PlusIcon className="w-5 h-5 mr-2" />
             Tambah Kegiatan
           </Button>
@@ -179,10 +319,16 @@ const AdminActivities = () => {
                     Lihat Detail
                   </Button>
                   <div className="flex gap-2">
-                    <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => openEditForm(activity)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    >
                       <PencilIcon className="w-5 h-5" />
                     </button>
-                    <button className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => handleDelete(activity.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
                       <TrashIcon className="w-5 h-5" />
                     </button>
                   </div>
@@ -213,9 +359,151 @@ const AdminActivities = () => {
           </Card.Body>
         </Card>
       )}
+
+      {/* Modal Form */}
+      {showForm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {formMode === 'create' ? 'Tambah Kegiatan' : 'Edit Kegiatan'}
+              </h2>
+              <button
+                onClick={closeForm}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg transition-colors"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+            {formError && (
+              <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg text-sm">
+                {formError}
+              </div>
+            )}
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Judul Kegiatan*</label>
+                <input
+                  name="title"
+                  value={formData.title}
+                  onChange={handleFormChange}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal</label>
+                  <input
+                    name="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Waktu</label>
+                  <input
+                    name="time"
+                    type="time"
+                    value={formData.time}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="upcoming">Akan Datang</option>
+                    <option value="ongoing">Berlangsung</option>
+                    <option value="completed">Selesai</option>
+                    <option value="cancelled">Dibatalkan</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Tipe</label>
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="event">Event</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="seminar">Seminar</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="recruitment">Recruitment</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Lokasi</label>
+                  <input
+                    name="location"
+                    value={formData.location}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Organisasi</label>
+                  <input
+                    name="organization"
+                    value={formData.organization}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2 flex items-center">
+                  <input
+                    name="registrationRequired"
+                    type="checkbox"
+                    checked={formData.registrationRequired}
+                    onChange={handleFormChange}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Perlu Pendaftaran</label>
+                </div>
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Deskripsi</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleFormChange}
+                  rows={4}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={processing}
+                  className="flex-1"
+                >
+                  {processing ? 'Menyimpan...' : formMode === 'create' ? 'Tambah' : 'Simpan'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeForm}
+                  disabled={processing}
+                >
+                  Batal
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default AdminActivities;
-

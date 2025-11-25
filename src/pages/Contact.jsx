@@ -1,62 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CONTACT_INFO } from '../utils/constants';
 import Card from '../components/ui/Card';
 import SearchBar from '../components/ui/SearchBar';
 import { LocationIcon, MailIcon, PhoneIcon, ClockIcon, UsersIcon, SearchIcon } from '../components/icons';
+import { getAll } from '../services/contactService';
 
 const Contact = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [organizationLeaders, setOrganizationLeaders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for organization leaders
-  const organizationLeaders = [
-    { 
-      id: 1,
-      name: 'Ketua BEM', 
-      email: 'ketua.bem@universitas.ac.id', 
-      phone: '+62 123 456 7892', 
-      organization: 'BEM',
-      position: 'Ketua Umum',
-      photo: null
-    },
-    { 
-      id: 2,
-      name: 'Ketua DPM', 
-      email: 'ketua.dpm@universitas.ac.id', 
-      phone: '+62 123 456 7893', 
-      organization: 'DPM',
-      position: 'Ketua Umum',
-      photo: null
-    },
-    { 
-      id: 3,
-      name: 'Ketua HIMTI', 
-      email: 'ketua.himti@universitas.ac.id', 
-      phone: '+62 123 456 7894', 
-      organization: 'HIMTI',
-      position: 'Ketua',
-      photo: null
-    },
-    { 
-      id: 4,
-      name: 'Ketua HIMSI', 
-      email: 'ketua.himsi@universitas.ac.id', 
-      phone: '+62 123 456 7895', 
-      organization: 'HIMSI',
-      position: 'Ketua',
-      photo: null
-    },
-  ];
+  useEffect(() => {
+    loadContacts();
+  }, []);
+
+  const loadContacts = async () => {
+    setLoading(true);
+    try {
+      const contacts = await getAll();
+      setOrganizationLeaders(contacts.filter(c => c.type === 'leader'));
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+      setOrganizationLeaders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter organizations based on search
   const filteredLeaders = organizationLeaders.filter(leader =>
     leader.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    leader.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    leader.organization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     leader.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSearch = (value) => {
     setSearchTerm(value);
   };
+
+  if (loading) {
+    return <div className="max-w-7xl mx-auto p-8">Loading contacts...</div>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
