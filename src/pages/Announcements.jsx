@@ -1,59 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
 import AnnouncementCard from '../components/ui/AnnouncementCard';
 import { ANNOUNCEMENT_CATEGORIES } from '../utils/constants';
-import { AnnouncementIcon, PlusIcon } from '../components/icons';
-import { getAll } from '../services/announcementService';
+import { AnnouncementIcon } from '../components/icons';
+import useRealtimeCollection from '../hooks/useRealtimeCollection';
+import { getAll, subscribeToAnnouncementChanges } from '../services/announcementService';
 
 const Announcements = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [announcements, setAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: announcements,
+    loading,
+    error,
+  } = useRealtimeCollection(getAll, subscribeToAnnouncementChanges);
 
-  useEffect(() => {
-    loadAnnouncements();
-  }, []);
+  const filters = useMemo(
+    () =>
+      ANNOUNCEMENT_CATEGORIES.map((cat) => ({
+        value: cat,
+        label: cat,
+      })),
+    []
+  );
 
-  const loadAnnouncements = async () => {
-    setLoading(true);
-    try {
-      const data = await getAll();
-      setAnnouncements(data);
-    } catch (error) {
-      console.error('Error loading announcements:', error);
-      setAnnouncements([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filters = ANNOUNCEMENT_CATEGORIES.map(cat => ({
-    value: cat,
-    label: cat,
-  }));
-
-  const filteredAnnouncements = announcements.filter(announcement => {
-    const matchesSearch = announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         announcement.excerpt?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         announcement.author?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredAnnouncements = announcements.filter((announcement) => {
+    const matchesSearch =
+      announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      announcement.excerpt?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      announcement.author?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || announcement.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-  };
-
-  const handleFilterChange = (value) => {
-    setSelectedCategory(value);
-  };
-
-  if (loading) {
-    return <div className="max-w-7xl mx-auto p-8">Loading announcements...</div>;
-  }
 
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
@@ -74,8 +54,8 @@ const Announcements = () => {
         <div className="mb-16">
           <SearchBar
             placeholder="Cari pengumuman (judul, isi, penulis)..."
-            onSearch={handleSearch}
-            onFilterChange={handleFilterChange}
+            onSearch={setSearchTerm}
+            onFilterChange={setSelectedCategory}
             filters={filters}
             className="w-full"
           />
@@ -89,15 +69,19 @@ const Announcements = () => {
         </p>
       </div>
 
-      {/* Announcements Grid */}
-      {filteredAnnouncements.length > 0 ? (
+      {/* Content */}
+      {loading ? (
+        <Card>
+          <Card.Body className="py-16 text-center text-gray-500">Memuat pengumuman...</Card.Body>
+        </Card>
+      ) : error ? (
+        <Card>
+          <Card.Body className="py-16 text-center text-red-500">{error}</Card.Body>
+        </Card>
+      ) : filteredAnnouncements.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
           {filteredAnnouncements.map((announcement) => (
-            <AnnouncementCard
-              key={announcement.id}
-              announcement={announcement}
-              className="hover-lift"
-            />
+            <AnnouncementCard key={announcement.id} announcement={announcement} className="hover-lift" />
           ))}
         </div>
       ) : (

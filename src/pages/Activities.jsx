@@ -1,62 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
 import ActivityCard from '../components/ui/ActivityCard';
 import { ACTIVITY_STATUS } from '../utils/constants';
-import { ActivityIcon, PlusIcon } from '../components/icons';
-import { getAll } from '../services/activityService';
+import { ActivityIcon } from '../components/icons';
+import useRealtimeCollection from '../hooks/useRealtimeCollection';
+import { getAll, subscribeToActivityChanges } from '../services/activityService';
 
 const Activities = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: activities,
+    loading,
+    error,
+  } = useRealtimeCollection(getAll, subscribeToActivityChanges);
 
-  useEffect(() => {
-    loadActivities();
-  }, []);
+  const statusFilters = useMemo(
+    () =>
+      Object.values(ACTIVITY_STATUS).map((status) => ({
+        value: status,
+        label:
+          status === 'upcoming'
+            ? 'Akan Datang'
+            : status === 'ongoing'
+            ? 'Berlangsung'
+            : status === 'completed'
+            ? 'Selesai'
+            : 'Dibatalkan',
+      })),
+    []
+  );
 
-  const loadActivities = async () => {
-    setLoading(true);
-    try {
-      const data = await getAll();
-      setActivities(data);
-    } catch (error) {
-      console.error('Error loading activities:', error);
-      setActivities([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const statusFilters = Object.values(ACTIVITY_STATUS).map(status => ({
-    value: status,
-    label: status === 'upcoming' ? 'Akan Datang' : 
-           status === 'ongoing' ? 'Berlangsung' :
-           status === 'completed' ? 'Selesai' : 'Dibatalkan',
-  }));
-
-  const filteredActivities = activities.filter(activity => {
-    const matchesSearch = activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         activity.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         activity.organization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         activity.location?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredActivities = activities.filter((activity) => {
+    const matchesSearch =
+      activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      activity.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      activity.organization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      activity.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !selectedStatus || activity.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
-
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-  };
-
-  const handleFilterChange = (value) => {
-    setSelectedStatus(value);
-  };
-
-  if (loading) {
-    return <div className="max-w-7xl mx-auto p-8">Loading activities...</div>;
-  }
 
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
@@ -77,8 +62,8 @@ const Activities = () => {
         <div className="mb-16">
           <SearchBar
             placeholder="Cari kegiatan (judul, deskripsi, organisasi, lokasi)..."
-            onSearch={handleSearch}
-            onFilterChange={handleFilterChange}
+            onSearch={setSearchTerm}
+            onFilterChange={setSelectedStatus}
             filters={statusFilters}
             className="w-full"
           />
@@ -92,16 +77,19 @@ const Activities = () => {
         </p>
       </div>
 
-      {/* Activities Grid */}
-      {filteredActivities.length > 0 ? (
+      {/* Content */}
+      {loading ? (
+        <Card>
+          <Card.Body className="py-16 text-center text-gray-500">Memuat kegiatan...</Card.Body>
+        </Card>
+      ) : error ? (
+        <Card>
+          <Card.Body className="py-16 text-center text-red-500">{error}</Card.Body>
+        </Card>
+      ) : filteredActivities.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
           {filteredActivities.map((activity) => (
-            <ActivityCard
-              key={activity.id}
-              activity={activity}
-              showOrganization={true}
-              className="hover-lift"
-            />
+            <ActivityCard key={activity.id} activity={activity} showOrganization className="hover-lift" />
           ))}
         </div>
       ) : (

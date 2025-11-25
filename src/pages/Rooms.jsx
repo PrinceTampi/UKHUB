@@ -1,59 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
 import RoomCard from '../components/ui/RoomCard';
-import { BuildingIcon, PlusIcon } from '../components/icons';
-import { getAll } from '../services/roomService';
+import { BuildingIcon } from '../components/icons';
+import useRealtimeCollection from '../hooks/useRealtimeCollection';
+import { getAll, subscribeToRoomChanges } from '../services/roomService';
 
 const Rooms = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBuilding, setSelectedBuilding] = useState('');
-  const [rooms, setRooms] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: rooms,
+    loading,
+    error,
+  } = useRealtimeCollection(getAll, subscribeToRoomChanges);
 
-  useEffect(() => {
-    loadRooms();
-  }, []);
+  const buildingFilters = useMemo(() => {
+    const buildings = [...new Set(rooms.map((room) => room.building).filter(Boolean))];
+    return buildings.map((building) => ({
+      value: building,
+      label: building,
+    }));
+  }, [rooms]);
 
-  const loadRooms = async () => {
-    setLoading(true);
-    try {
-      const data = await getAll();
-      setRooms(data);
-    } catch (error) {
-      console.error('Error loading rooms:', error);
-      setRooms([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const buildings = [...new Set(rooms.map(room => room.building))];
-  const buildingFilters = buildings.map(building => ({
-    value: building,
-    label: building,
-  }));
-
-  const filteredRooms = rooms.filter(room => {
-    const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         room.building.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         room.location?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredRooms = rooms.filter((room) => {
+    const matchesSearch =
+      room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      room.building.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      room.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBuilding = !selectedBuilding || room.building === selectedBuilding;
     return matchesSearch && matchesBuilding;
   });
-
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-  };
-
-  const handleFilterChange = (value) => {
-    setSelectedBuilding(value);
-  };
-
-  if (loading) {
-    return <div className="max-w-7xl mx-auto p-8">Loading rooms...</div>;
-  }
 
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
@@ -74,8 +52,8 @@ const Rooms = () => {
         <div className="mb-16">
           <SearchBar
             placeholder="Cari ruangan (nama, gedung, lokasi)..."
-            onSearch={handleSearch}
-            onFilterChange={handleFilterChange}
+            onSearch={setSearchTerm}
+            onFilterChange={setSelectedBuilding}
             filters={buildingFilters}
             className="w-full"
           />
@@ -89,16 +67,19 @@ const Rooms = () => {
         </p>
       </div>
 
-      {/* Rooms Grid */}
-      {filteredRooms.length > 0 ? (
+      {/* Content */}
+      {loading ? (
+        <Card>
+          <Card.Body className="py-16 text-center text-gray-500">Memuat data ruangan...</Card.Body>
+        </Card>
+      ) : error ? (
+        <Card>
+          <Card.Body className="py-16 text-center text-red-500">{error}</Card.Body>
+        </Card>
+      ) : filteredRooms.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
           {filteredRooms.map((room) => (
-            <RoomCard
-              key={room.id}
-              room={room}
-              showOrganization={true}
-              className="hover-lift"
-            />
+            <RoomCard key={room.id} room={room} showOrganization className="hover-lift" />
           ))}
         </div>
       ) : (

@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ACTIVITY_STATUS } from '../utils/constants';
 
 const STORAGE_KEY = 'activities_data';
+const CHANGE_EVENT = 'ukhub:activities/change';
 
 const DEFAULT_ACTIVITIES = [
   {
@@ -92,12 +93,24 @@ const DEFAULT_ACTIVITIES = [
 
 const getStorage = () => (typeof window !== 'undefined' ? window.localStorage : null);
 
-const seedActivities = () => DEFAULT_ACTIVITIES.map((act) => ({
-  ...act,
-  id: act.id || uuidv4(),
-  createdAt: act.createdAt || new Date().toISOString(),
-  updatedAt: act.updatedAt || new Date().toISOString(),
-}));
+const cloneActivity = (activity) => ({ ...activity });
+
+const dispatchChange = (activities) => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(CHANGE_EVENT, {
+      detail: activities.map(cloneActivity),
+    })
+  );
+};
+
+const seedActivities = () =>
+  DEFAULT_ACTIVITIES.map((act) => ({
+    ...cloneActivity(act),
+    id: act.id || uuidv4(),
+    createdAt: act.createdAt || new Date().toISOString(),
+    updatedAt: act.updatedAt || new Date().toISOString(),
+  }));
 
 const readActivities = () => {
   const storage = getStorage();
@@ -116,10 +129,10 @@ const readActivities = () => {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) throw new Error('Invalid activities format');
     // Merge with default activities
-    const defaultIds = new Set(DEFAULT_ACTIVITIES.map(a => a.id));
-    const existingIds = new Set(parsed.map(a => a.id));
-    const missingDefaults = DEFAULT_ACTIVITIES.filter(a => !existingIds.has(a.id));
-    return [...parsed, ...missingDefaults];
+    const defaultIds = new Set(DEFAULT_ACTIVITIES.map((a) => a.id));
+    const existingIds = new Set(parsed.map((a) => a.id));
+    const missingDefaults = DEFAULT_ACTIVITIES.filter((a) => !existingIds.has(a.id));
+    return [...parsed, ...missingDefaults].map(cloneActivity);
   } catch {
     const seeded = seedActivities();
     persistActivities(seeded);
@@ -131,6 +144,7 @@ const persistActivities = (activities) => {
   const storage = getStorage();
   if (!storage) return;
   storage.setItem(STORAGE_KEY, JSON.stringify(activities));
+  dispatchChange(activities);
 };
 
 const ensureCanMutate = (role) => {
@@ -149,9 +163,7 @@ const normalizeStatus = (value) => {
 };
 
 // Standard service functions
-export const getAll = async () => {
-  return readActivities();
-};
+export const getAll = async () => readActivities().map(cloneActivity);
 
 export const getById = async (id) => {
   const activities = readActivities();
@@ -159,7 +171,7 @@ export const getById = async (id) => {
   if (!activity) {
     throw new Error('Activity not found');
   }
-  return activity;
+  return cloneActivity(activity);
 };
 
 export const add = async (activity, userRole) => {
@@ -187,7 +199,7 @@ export const add = async (activity, userRole) => {
 
   activities.push(newActivity);
   persistActivities(activities);
-  return newActivity;
+  return cloneActivity(newActivity);
 };
 
 export const update = async (id, updates, userRole) => {
@@ -208,7 +220,7 @@ export const update = async (id, updates, userRole) => {
 
   activities[index] = updated;
   persistActivities(activities);
-  return updated;
+  return cloneActivity(updated);
 };
 
 export const remove = async (id, userRole) => {
@@ -219,6 +231,36 @@ export const remove = async (id, userRole) => {
     throw new Error('Activity not found');
   }
   persistActivities(filtered);
+};
+
+export const subscribeToActivityChanges = (callback) => {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const changeHandler = (event) => {
+    if (Array.isArray(event.detail)) {
+      callback(event.detail);
+    } else {
+      callback(readActivities().map(cloneActivity));
+    }
+  };
+
+  const storageHandler = (event) => {
+    if (event.key === STORAGE_KEY) {
+      callback(
+        event.newValue ? JSON.parse(event.newValue).map(cloneActivity) : []
+      );
+    }
+  };
+
+  window.addEventListener(CHANGE_EVENT, changeHandler);
+  window.addEventListener('storage', storageHandler);
+
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, changeHandler);
+    window.removeEventListener('storage', storageHandler);
+  };
 };
 
 // Legacy function names for backward compatibility

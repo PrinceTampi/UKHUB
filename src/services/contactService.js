@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CONTACT_INFO } from '../utils/constants';
 
 const STORAGE_KEY = 'contacts_data';
+const CHANGE_EVENT = 'ukhub:contacts/change';
 
 const DEFAULT_CONTACTS = [
   {
@@ -80,12 +81,24 @@ const DEFAULT_CONTACTS = [
 
 const getStorage = () => (typeof window !== 'undefined' ? window.localStorage : null);
 
-const seedContacts = () => DEFAULT_CONTACTS.map((contact) => ({
-  ...contact,
-  id: contact.id || uuidv4(),
-  createdAt: contact.createdAt || new Date().toISOString(),
-  updatedAt: contact.updatedAt || new Date().toISOString(),
-}));
+const cloneContact = (contact) => ({ ...contact });
+
+const dispatchChange = (contacts) => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(CHANGE_EVENT, {
+      detail: contacts.map(cloneContact),
+    })
+  );
+};
+
+const seedContacts = () =>
+  DEFAULT_CONTACTS.map((contact) => ({
+    ...cloneContact(contact),
+    id: contact.id || uuidv4(),
+    createdAt: contact.createdAt || new Date().toISOString(),
+    updatedAt: contact.updatedAt || new Date().toISOString(),
+  }));
 
 const readContacts = () => {
   const storage = getStorage();
@@ -104,10 +117,10 @@ const readContacts = () => {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) throw new Error('Invalid contacts format');
     // Merge with default contacts
-    const defaultIds = new Set(DEFAULT_CONTACTS.map(c => c.id));
-    const existingIds = new Set(parsed.map(c => c.id));
-    const missingDefaults = DEFAULT_CONTACTS.filter(c => !existingIds.has(c.id));
-    return [...parsed, ...missingDefaults];
+    const defaultIds = new Set(DEFAULT_CONTACTS.map((c) => c.id));
+    const existingIds = new Set(parsed.map((c) => c.id));
+    const missingDefaults = DEFAULT_CONTACTS.filter((c) => !existingIds.has(c.id));
+    return [...parsed, ...missingDefaults].map(cloneContact);
   } catch {
     const seeded = seedContacts();
     persistContacts(seeded);
@@ -119,6 +132,7 @@ const persistContacts = (contacts) => {
   const storage = getStorage();
   if (!storage) return;
   storage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+  dispatchChange(contacts);
 };
 
 const ensureCanMutate = (role) => {
@@ -129,9 +143,7 @@ const ensureCanMutate = (role) => {
 };
 
 // Standard service functions
-export const getAll = async () => {
-  return readContacts();
-};
+export const getAll = async () => readContacts().map(cloneContact);
 
 export const getById = async (id) => {
   const contacts = readContacts();
@@ -139,7 +151,7 @@ export const getById = async (id) => {
   if (!contact) {
     throw new Error('Contact not found');
   }
-  return contact;
+  return cloneContact(contact);
 };
 
 export const add = async (contact, userRole) => {
@@ -167,7 +179,7 @@ export const add = async (contact, userRole) => {
 
   contacts.push(newContact);
   persistContacts(contacts);
-  return newContact;
+  return cloneContact(newContact);
 };
 
 export const update = async (id, updates, userRole) => {
@@ -187,7 +199,7 @@ export const update = async (id, updates, userRole) => {
 
   contacts[index] = updated;
   persistContacts(contacts);
-  return updated;
+  return cloneContact(updated);
 };
 
 export const remove = async (id, userRole) => {
@@ -198,6 +210,36 @@ export const remove = async (id, userRole) => {
     throw new Error('Contact not found');
   }
   persistContacts(filtered);
+};
+
+export const subscribeToContactChanges = (callback) => {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const changeHandler = (event) => {
+    if (Array.isArray(event.detail)) {
+      callback(event.detail);
+    } else {
+      callback(readContacts().map(cloneContact));
+    }
+  };
+
+  const storageHandler = (event) => {
+    if (event.key === STORAGE_KEY) {
+      callback(
+        event.newValue ? JSON.parse(event.newValue).map(cloneContact) : []
+      );
+    }
+  };
+
+  window.addEventListener(CHANGE_EVENT, changeHandler);
+  window.addEventListener('storage', storageHandler);
+
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, changeHandler);
+    window.removeEventListener('storage', storageHandler);
+  };
 };
 
 // Legacy function names for backward compatibility

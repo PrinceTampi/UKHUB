@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ANNOUNCEMENT_CATEGORIES } from '../utils/constants';
 
 const STORAGE_KEY = 'announcements_data';
+const CHANGE_EVENT = 'ukhub:announcements/change';
 
 const DEFAULT_ANNOUNCEMENTS = [
   {
@@ -80,12 +81,24 @@ const DEFAULT_ANNOUNCEMENTS = [
 
 const getStorage = () => (typeof window !== 'undefined' ? window.localStorage : null);
 
-const seedAnnouncements = () => DEFAULT_ANNOUNCEMENTS.map((ann) => ({
-  ...ann,
-  id: ann.id || uuidv4(),
-  createdAt: ann.createdAt || new Date().toISOString(),
-  updatedAt: ann.updatedAt || new Date().toISOString(),
-}));
+const cloneAnnouncement = (announcement) => ({ ...announcement });
+
+const dispatchChange = (announcements) => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(CHANGE_EVENT, {
+      detail: announcements.map(cloneAnnouncement),
+    })
+  );
+};
+
+const seedAnnouncements = () =>
+  DEFAULT_ANNOUNCEMENTS.map((ann) => ({
+    ...cloneAnnouncement(ann),
+    id: ann.id || uuidv4(),
+    createdAt: ann.createdAt || new Date().toISOString(),
+    updatedAt: ann.updatedAt || new Date().toISOString(),
+  }));
 
 const readAnnouncements = () => {
   const storage = getStorage();
@@ -104,10 +117,10 @@ const readAnnouncements = () => {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) throw new Error('Invalid announcements format');
     // Merge with default announcements
-    const defaultIds = new Set(DEFAULT_ANNOUNCEMENTS.map(a => a.id));
-    const existingIds = new Set(parsed.map(a => a.id));
-    const missingDefaults = DEFAULT_ANNOUNCEMENTS.filter(a => !existingIds.has(a.id));
-    return [...parsed, ...missingDefaults];
+    const defaultIds = new Set(DEFAULT_ANNOUNCEMENTS.map((a) => a.id));
+    const existingIds = new Set(parsed.map((a) => a.id));
+    const missingDefaults = DEFAULT_ANNOUNCEMENTS.filter((a) => !existingIds.has(a.id));
+    return [...parsed, ...missingDefaults].map(cloneAnnouncement);
   } catch {
     const seeded = seedAnnouncements();
     persistAnnouncements(seeded);
@@ -119,6 +132,7 @@ const persistAnnouncements = (announcements) => {
   const storage = getStorage();
   if (!storage) return;
   storage.setItem(STORAGE_KEY, JSON.stringify(announcements));
+  dispatchChange(announcements);
 };
 
 const ensureCanMutate = (role) => {
@@ -137,9 +151,7 @@ const normalizeCategory = (value) => {
 };
 
 // Standard service functions
-export const getAll = async () => {
-  return readAnnouncements();
-};
+export const getAll = async () => readAnnouncements().map(cloneAnnouncement);
 
 export const getById = async (id) => {
   const announcements = readAnnouncements();
@@ -147,7 +159,7 @@ export const getById = async (id) => {
   if (!announcement) {
     throw new Error('Announcement not found');
   }
-  return announcement;
+  return cloneAnnouncement(announcement);
 };
 
 export const add = async (announcement, userRole) => {
@@ -171,9 +183,9 @@ export const add = async (announcement, userRole) => {
     throw new Error('Announcement title is required');
   }
 
-    announcements.push(newAnnouncement);
+  announcements.push(newAnnouncement);
   persistAnnouncements(announcements);
-  return newAnnouncement;
+  return cloneAnnouncement(newAnnouncement);
 };
 
 export const update = async (id, updates, userRole) => {
@@ -194,7 +206,7 @@ export const update = async (id, updates, userRole) => {
 
   announcements[index] = updated;
   persistAnnouncements(announcements);
-  return updated;
+  return cloneAnnouncement(updated);
 };
 
 export const remove = async (id, userRole) => {
@@ -205,6 +217,36 @@ export const remove = async (id, userRole) => {
     throw new Error('Announcement not found');
   }
   persistAnnouncements(filtered);
+};
+
+export const subscribeToAnnouncementChanges = (callback) => {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const changeHandler = (event) => {
+    if (Array.isArray(event.detail)) {
+      callback(event.detail);
+    } else {
+      callback(readAnnouncements().map(cloneAnnouncement));
+    }
+  };
+
+  const storageHandler = (event) => {
+    if (event.key === STORAGE_KEY) {
+      callback(
+        event.newValue ? JSON.parse(event.newValue).map(cloneAnnouncement) : []
+      );
+    }
+  };
+
+  window.addEventListener(CHANGE_EVENT, changeHandler);
+  window.addEventListener('storage', storageHandler);
+
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, changeHandler);
+    window.removeEventListener('storage', storageHandler);
+  };
 };
 
 // Legacy function names for backward compatibility

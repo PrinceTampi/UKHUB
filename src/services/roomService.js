@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 const STORAGE_KEY = 'rooms_data';
+const CHANGE_EVENT = 'ukhub:rooms/change';
 
 const DEFAULT_ROOMS = [
   {
@@ -85,12 +86,27 @@ const DEFAULT_ROOMS = [
 
 const getStorage = () => (typeof window !== 'undefined' ? window.localStorage : null);
 
-const seedRooms = () => DEFAULT_ROOMS.map((room) => ({
+const cloneRoom = (room) => ({
   ...room,
-  id: room.id || uuidv4(),
-  createdAt: room.createdAt || new Date().toISOString(),
-  updatedAt: room.updatedAt || new Date().toISOString(),
-}));
+  facilities: Array.isArray(room.facilities) ? [...room.facilities] : [],
+});
+
+const dispatchChange = (rooms) => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(CHANGE_EVENT, {
+      detail: rooms.map(cloneRoom),
+    })
+  );
+};
+
+const seedRooms = () =>
+  DEFAULT_ROOMS.map((room) => ({
+    ...cloneRoom(room),
+    id: room.id || uuidv4(),
+    createdAt: room.createdAt || new Date().toISOString(),
+    updatedAt: room.updatedAt || new Date().toISOString(),
+  }));
 
 const readRooms = () => {
   const storage = getStorage();
@@ -109,10 +125,10 @@ const readRooms = () => {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) throw new Error('Invalid rooms format');
     // Merge with default rooms if localStorage is empty or has fewer items
-    const defaultIds = new Set(DEFAULT_ROOMS.map(r => r.id));
-    const existingIds = new Set(parsed.map(r => r.id));
-    const missingDefaults = DEFAULT_ROOMS.filter(r => !existingIds.has(r.id));
-    return [...parsed, ...missingDefaults];
+    const defaultIds = new Set(DEFAULT_ROOMS.map((r) => r.id));
+    const existingIds = new Set(parsed.map((r) => r.id));
+    const missingDefaults = DEFAULT_ROOMS.filter((r) => !existingIds.has(r.id));
+    return [...parsed, ...missingDefaults].map(cloneRoom);
   } catch {
     const seeded = seedRooms();
     persistRooms(seeded);
@@ -124,6 +140,7 @@ const persistRooms = (rooms) => {
   const storage = getStorage();
   if (!storage) return;
   storage.setItem(STORAGE_KEY, JSON.stringify(rooms));
+  dispatchChange(rooms);
 };
 
 const ensureCanMutate = (role) => {
@@ -134,9 +151,7 @@ const ensureCanMutate = (role) => {
 };
 
 // Standard service functions
-export const getAll = async () => {
-  return readRooms();
-};
+export const getAll = async () => readRooms().map(cloneRoom);
 
 export const getById = async (id) => {
   const rooms = readRooms();
@@ -144,7 +159,7 @@ export const getById = async (id) => {
   if (!room) {
     throw new Error('Room not found');
   }
-  return room;
+  return cloneRoom(room);
 };
 
 export const add = async (room, userRole) => {
@@ -171,7 +186,7 @@ export const add = async (room, userRole) => {
 
   rooms.push(newRoom);
   persistRooms(rooms);
-  return newRoom;
+  return cloneRoom(newRoom);
 };
 
 export const update = async (id, updates, userRole) => {
@@ -191,7 +206,7 @@ export const update = async (id, updates, userRole) => {
 
   rooms[index] = updated;
   persistRooms(rooms);
-  return updated;
+  return cloneRoom(updated);
 };
 
 export const remove = async (id, userRole) => {
@@ -202,6 +217,36 @@ export const remove = async (id, userRole) => {
     throw new Error('Room not found');
   }
   persistRooms(filtered);
+};
+
+export const subscribeToRoomChanges = (callback) => {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const changeHandler = (event) => {
+    if (Array.isArray(event.detail)) {
+      callback(event.detail);
+    } else {
+      callback(readRooms().map(cloneRoom));
+    }
+  };
+
+  const storageHandler = (event) => {
+    if (event.key === STORAGE_KEY) {
+      callback(
+        event.newValue ? JSON.parse(event.newValue).map(cloneRoom) : []
+      );
+    }
+  };
+
+  window.addEventListener(CHANGE_EVENT, changeHandler);
+  window.addEventListener('storage', storageHandler);
+
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, changeHandler);
+    window.removeEventListener('storage', storageHandler);
+  };
 };
 
 // Legacy function names for backward compatibility
