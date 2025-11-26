@@ -34,7 +34,7 @@ const Header = ({ onGlobalSearch }) => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-md bg-opacity-95 dark:bg-opacity-95">
+    <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/85 backdrop-blur border-b border-gray-100 dark:border-gray-800 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Mobile Menu Button */}
@@ -70,8 +70,8 @@ const Header = ({ onGlobalSearch }) => {
                 to={item.path}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive(item.path)
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 {item.name}
@@ -93,7 +93,7 @@ const Header = ({ onGlobalSearch }) => {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Toggle theme"
             >
               {theme === 'light' ? (
@@ -109,7 +109,7 @@ const Header = ({ onGlobalSearch }) => {
 
             {/* Mobile Search Icon */}
             <button
-              className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="md:hidden p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100"
               aria-label="Search"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

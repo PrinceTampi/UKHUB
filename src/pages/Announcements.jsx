@@ -1,93 +1,39 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import SearchBar from '../components/ui/SearchBar';
 import AnnouncementCard from '../components/ui/AnnouncementCard';
 import { ANNOUNCEMENT_CATEGORIES } from '../utils/constants';
-import { AnnouncementIcon, PlusIcon } from '../components/icons';
+import { AnnouncementIcon } from '../components/icons';
+import useRealtimeCollection from '../hooks/useRealtimeCollection';
+import { getAll, subscribeToAnnouncementChanges } from '../services/announcementService';
 
 const Announcements = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const {
+    data: announcements,
+    loading,
+    error,
+  } = useRealtimeCollection(getAll, subscribeToAnnouncementChanges);
 
-  // Mock data - in real app, this would come from API
-  const announcements = [
-    {
-      id: 1,
-      title: 'Pengumuman Penting: Open Recruitment BEM 2024',
-      category: 'Penting',
-      date: '2024-03-10',
-      author: 'WR3',
-      isUrgent: true,
-      excerpt: 'Dibuka pendaftaran untuk anggota baru Badan Eksekutif Mahasiswa periode 2024. Pendaftaran dibuka mulai tanggal 15 Maret 2024.',
-    },
-    {
-      id: 2,
-      title: 'Seminar Kewirausahaan Mahasiswa',
-      category: 'Event',
-      date: '2024-03-12',
-      author: 'Kemahasiswaan',
-      isUrgent: false,
-      excerpt: 'Seminar tentang kewirausahaan untuk mahasiswa dengan pembicara dari industri. Acara akan dilaksanakan pada tanggal 25 Maret 2024.',
-    },
-    {
-      id: 3,
-      title: 'Workshop Leadership & Management',
-      category: 'Event',
-      date: '2024-03-15',
-      author: 'Kemahasiswaan',
-      isUrgent: false,
-      excerpt: 'Workshop untuk meningkatkan kemampuan kepemimpinan dan manajemen organisasi. Terbuka untuk semua organisasi kemahasiswaan.',
-    },
-    {
-      id: 4,
-      title: 'Informasi Perpanjangan Masa Aktif Organisasi',
-      category: 'Informasi',
-      date: '2024-03-18',
-      author: 'WR3',
-      isUrgent: false,
-      excerpt: 'Informasi penting mengenai perpanjangan masa aktif organisasi kemahasiswaan untuk periode 2024-2025.',
-    },
-    {
-      id: 5,
-      title: 'Pendaftaran Program Beasiswa Kemahasiswaan',
-      category: 'Penting',
-      date: '2024-03-20',
-      author: 'WR3',
-      isUrgent: true,
-      excerpt: 'Dibuka pendaftaran program beasiswa untuk mahasiswa aktif yang terlibat dalam organisasi kemahasiswaan.',
-    },
-    {
-      id: 6,
-      title: 'Pelatihan Manajemen Keuangan Organisasi',
-      category: 'Event',
-      date: '2024-03-22',
-      author: 'Kemahasiswaan',
-      isUrgent: false,
-      excerpt: 'Pelatihan manajemen keuangan untuk pengurus organisasi kemahasiswaan. Wajib diikuti oleh bendahara organisasi.',
-    },
-  ];
+  const filters = useMemo(
+    () =>
+      ANNOUNCEMENT_CATEGORIES.map((cat) => ({
+        value: cat,
+        label: cat,
+      })),
+    []
+  );
 
-  const filters = ANNOUNCEMENT_CATEGORIES.map(cat => ({
-    value: cat,
-    label: cat,
-  }));
-
-  const filteredAnnouncements = announcements.filter(announcement => {
-    const matchesSearch = announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         announcement.excerpt?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         announcement.author?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredAnnouncements = announcements.filter((announcement) => {
+    const matchesSearch =
+      announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      announcement.excerpt?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      announcement.author?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || announcement.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-  };
-
-  const handleFilterChange = (value) => {
-    setSelectedCategory(value);
-  };
 
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
@@ -102,18 +48,14 @@ const Announcements = () => {
               Informasi penting dari WR3 dan Kemahasiswaan
             </p>
           </div>
-          <Button variant="primary" size="md" className="hidden md:flex">
-            <PlusIcon className="w-5 h-5 mr-2" />
-            Buat Pengumuman
-          </Button>
         </div>
 
         {/* Search and Filter */}
         <div className="mb-16">
           <SearchBar
             placeholder="Cari pengumuman (judul, isi, penulis)..."
-            onSearch={handleSearch}
-            onFilterChange={handleFilterChange}
+            onSearch={setSearchTerm}
+            onFilterChange={setSelectedCategory}
             filters={filters}
             className="w-full"
           />
@@ -127,15 +69,19 @@ const Announcements = () => {
         </p>
       </div>
 
-      {/* Announcements Grid */}
-      {filteredAnnouncements.length > 0 ? (
+      {/* Content */}
+      {loading ? (
+        <Card>
+          <Card.Body className="py-16 text-center text-gray-500">Memuat pengumuman...</Card.Body>
+        </Card>
+      ) : error ? (
+        <Card>
+          <Card.Body className="py-16 text-center text-red-500">{error}</Card.Body>
+        </Card>
+      ) : filteredAnnouncements.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
           {filteredAnnouncements.map((announcement) => (
-            <AnnouncementCard
-              key={announcement.id}
-              announcement={announcement}
-              className="hover-lift"
-            />
+            <AnnouncementCard key={announcement.id} announcement={announcement} className="hover-lift" />
           ))}
         </div>
       ) : (
@@ -165,4 +111,3 @@ const Announcements = () => {
 };
 
 export default Announcements;
-

@@ -1,83 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import SearchBar from '../../components/ui/SearchBar';
 import RoomCard from '../../components/ui/RoomCard';
-import { BuildingIcon, PlusIcon, PencilIcon, TrashIcon } from '../../components/icons';
+import { BuildingIcon, PlusIcon, PencilIcon, TrashIcon, XIcon } from '../../components/icons';
+import { getAll, add, update, remove } from '../../services/roomService';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminRooms = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBuilding, setSelectedBuilding] = useState('');
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
+  const [currentRoom, setCurrentRoom] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    building: '',
+    location: '',
+    facilities: '',
+    accessHours: '08:00 - 17:00',
+    capacity: '',
+    organization: '',
+    status: 'available',
+  });
+  const [processing, setProcessing] = useState(false);
+  const [formError, setFormError] = useState(null);
 
-  // Mock data - in real app, this would come from API
-  const rooms = [
-    {
-      id: 1,
-      name: 'GK3-204',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 2',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System'],
-      accessHours: '08:00 - 17:00',
-      capacity: 30,
-      organization: 'BEM',
-      status: 'available',
-    },
-    {
-      id: 2,
-      name: 'GK3-205',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 2',
-      facilities: ['AC', 'Proyektor', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 20,
-      organization: 'DPM',
-      status: 'available',
-    },
-    {
-      id: 3,
-      name: 'GK3-301',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 3',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System', 'Panggung'],
-      accessHours: '08:00 - 20:00',
-      capacity: 100,
-      organization: 'UKM Seni',
-      status: 'occupied',
-    },
-    {
-      id: 4,
-      name: 'GK3-102',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 1',
-      facilities: ['AC', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 15,
-      organization: 'HIMTI',
-      status: 'available',
-    },
-    {
-      id: 5,
-      name: 'GK3-103',
-      building: 'Gedung Kemahasiswaan',
-      location: 'Lantai 1',
-      facilities: ['AC', 'Proyektor', 'WiFi'],
-      accessHours: '08:00 - 17:00',
-      capacity: 25,
-      organization: 'HIMSI',
-      status: 'maintenance',
-    },
-    {
-      id: 6,
-      name: 'Aula Utama',
-      building: 'Gedung A',
-      location: 'Lantai 1',
-      facilities: ['AC', 'Proyektor', 'Whiteboard', 'WiFi', 'Sound System', 'Panggung', 'Layar Besar'],
-      accessHours: '08:00 - 22:00',
-      capacity: 200,
-      organization: 'Semua Organisasi',
-      status: 'available',
-    },
-  ];
+  useEffect(() => {
+    loadRooms();
+  }, []);
+
+  const loadRooms = async () => {
+    setLoading(true);
+    try {
+      const data = await getAll();
+      setRooms(data);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+      setRooms([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const buildings = [...new Set(rooms.map(room => room.building))];
   const buildingFilters = buildings.map(building => ({
@@ -101,6 +68,104 @@ const AdminRooms = () => {
     setSelectedBuilding(value);
   };
 
+  const openCreateForm = () => {
+    setFormMode('create');
+    setCurrentRoom(null);
+    setFormData({
+      name: '',
+      building: '',
+      location: '',
+      facilities: '',
+      accessHours: '08:00 - 17:00',
+      capacity: '',
+      organization: '',
+      status: 'available',
+    });
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const openEditForm = (room) => {
+    setFormMode('edit');
+    setCurrentRoom(room);
+    setFormData({
+      name: room.name || '',
+      building: room.building || '',
+      location: room.location || '',
+      facilities: Array.isArray(room.facilities) ? room.facilities.join(', ') : '',
+      accessHours: room.accessHours || '08:00 - 17:00',
+      capacity: room.capacity || '',
+      organization: room.organization || '',
+      status: room.status || 'available',
+    });
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setFormMode('create');
+    setCurrentRoom(null);
+    setFormError(null);
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setProcessing(true);
+    setFormError(null);
+
+    if (!formData.name || !formData.building) {
+      setFormError('Name dan Building wajib diisi.');
+      setProcessing(false);
+      return;
+    }
+
+    const payload = {
+      name: formData.name,
+      building: formData.building,
+      location: formData.location,
+      facilities: formData.facilities ? formData.facilities.split(',').map(f => f.trim()).filter(Boolean) : [],
+      accessHours: formData.accessHours,
+      capacity: parseInt(formData.capacity) || 0,
+      organization: formData.organization,
+      status: formData.status,
+    };
+
+    try {
+      if (formMode === 'create') {
+        const created = await add(payload, user?.role);
+        setRooms(prev => [...prev, created]);
+      } else if (formMode === 'edit' && currentRoom) {
+        const updated = await update(currentRoom.id, payload, user?.role);
+        setRooms(prev => prev.map(r => r.id === currentRoom.id ? updated : r));
+      }
+      closeForm();
+    } catch (err) {
+      setFormError(err.message || 'Gagal menyimpan ruangan');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleDelete = async (roomId) => {
+    if (!window.confirm('Hapus ruangan ini?')) return;
+    try {
+      await remove(roomId, user?.role);
+      setRooms(prev => prev.filter(r => r.id !== roomId));
+    } catch (err) {
+      alert(err.message || 'Gagal menghapus ruangan');
+    }
+  };
+
+  if (loading) {
+    return <div className="max-w-7xl mx-auto p-8">Loading rooms...</div>;
+  }
+
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
       {/* Page Header */}
@@ -114,7 +179,7 @@ const AdminRooms = () => {
               Kelola data ruangan untuk organisasi kemahasiswaan
             </p>
           </div>
-          <Button variant="primary" size="md" className="hidden md:flex">
+          <Button variant="primary" size="md" className="hidden md:flex" onClick={openCreateForm}>
             <PlusIcon className="w-5 h-5 mr-2" />
             Tambah Ruangan
           </Button>
@@ -209,10 +274,16 @@ const AdminRooms = () => {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => openEditForm(room)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    >
                       <PencilIcon className="w-5 h-5" />
                     </button>
-                    <button className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => handleDelete(room.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
                       <TrashIcon className="w-5 h-5" />
                     </button>
                   </div>
@@ -268,9 +339,134 @@ const AdminRooms = () => {
           </Card.Body>
         </Card>
       )}
+
+      {/* Modal Form */}
+      {showForm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {formMode === 'create' ? 'Tambah Ruangan' : 'Edit Ruangan'}
+              </h2>
+              <button
+                onClick={closeForm}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg transition-colors"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+            {formError && (
+              <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg text-sm">
+                {formError}
+              </div>
+            )}
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Nama Ruangan*</label>
+                  <input
+                    name="name"
+                    value={formData.name}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Gedung*</label>
+                  <input
+                    name="building"
+                    value={formData.building}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Lokasi</label>
+                  <input
+                    name="location"
+                    value={formData.location}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Kapasitas</label>
+                  <input
+                    name="capacity"
+                    type="number"
+                    value={formData.capacity}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Jam Akses</label>
+                  <input
+                    name="accessHours"
+                    value={formData.accessHours}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="available">Tersedia</option>
+                    <option value="occupied">Terpakai</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Organisasi</label>
+                  <input
+                    name="organization"
+                    value={formData.organization}
+                    onChange={handleFormChange}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Fasilitas (pisahkan dengan koma)</label>
+                  <input
+                    name="facilities"
+                    value={formData.facilities}
+                    onChange={handleFormChange}
+                    placeholder="AC, Proyektor, WiFi"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={processing}
+                  className="flex-1"
+                >
+                  {processing ? 'Menyimpan...' : formMode === 'create' ? 'Tambah' : 'Simpan'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeForm}
+                  disabled={processing}
+                >
+                  Batal
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default AdminRooms;
-

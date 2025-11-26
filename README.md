@@ -269,11 +269,12 @@ This project is part of UKHUB - Universitas Hub.
 ## 👥 Contributors
 
 - **Ralff** - Frontend Development (UI Components, Contact Page, Public Page)
-
+**Evangjelika** — Frontend Development (Tampilan UI)
 ## 📚 Documentation
 
 Lihat `.github/workflows/feature-branch-workflow.md` untuk informasi tentang GitHub workflow dan branch strategy.
 
 ---
+
 
 **Dibuat dengan ❤️ menggunakan React + Vite + TailwindCSS**

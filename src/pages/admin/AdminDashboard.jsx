@@ -1,70 +1,78 @@
 import { Link } from 'react-router-dom';
 import Card from '../../components/ui/Card';
-import { OrganizationIcon, BuildingIcon, AnnouncementIcon, ActivityIcon, MailIcon, ArrowRightIcon } from '../../components/icons';
+import {
+  OrganizationIcon,
+  BuildingIcon,
+  AnnouncementIcon,
+  ActivityIcon,
+  MailIcon,
+  ArrowRightIcon,
+} from '../../components/icons';
+import useDashboardStats from '../../hooks/useDashboardStats';
 
 const AdminDashboard = () => {
+  const { stats, loading } = useDashboardStats();
+
+  const metricCards = [
+    {
+      label: 'Total Organisasi',
+      value: stats.organizations,
+      icon: <OrganizationIcon className="w-6 h-6 text-blue-600" />,
+      accent: 'bg-blue-50 text-blue-600',
+    },
+    {
+      label: 'Total Ruangan',
+      value: stats.rooms,
+      icon: <BuildingIcon className="w-6 h-6 text-indigo-600" />,
+      accent: 'bg-indigo-50 text-indigo-600',
+    },
+    {
+      label: 'Total Kegiatan',
+      value: stats.activities,
+      icon: <ActivityIcon className="w-6 h-6 text-emerald-600" />,
+      accent: 'bg-emerald-50 text-emerald-600',
+    },
+    {
+      label: 'Total Pengumuman',
+      value: stats.announcements,
+      icon: <AnnouncementIcon className="w-6 h-6 text-orange-600" />,
+      accent: 'bg-orange-50 text-orange-600',
+    },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto animate-fadeIn">
+    <div className="max-w-7xl mx-auto animate-fade-in space-y-16">
       {/* Welcome Section */}
-      <div className="mb-20">
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-12 md:p-16 lg:p-20 shadow-2xl">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Admin Dashboard
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-10 md:p-14">
+        <div className="flex flex-col gap-6">
+          <div>
+            <p className="text-sm uppercase tracking-[0.4em] text-blue-500 font-semibold mb-2">Dashboard</p>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
+              Kontrol Pusat Administrasi
             </h1>
-            <p className="text-xl md:text-2xl text-blue-100 leading-relaxed mb-8">
-              Kelola semua data organisasi kemahasiswaan dari satu tempat
-            </p>
           </div>
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl">
+            Semua data ruangan, kegiatan, pengumuman, dan kontak otomatis tersinkronisasi untuk admin, dosen pembina,
+            dan mahasiswa.
+          </p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-20">
-        <Card className="border-l-4 border-l-blue-500 hover-lift">
-          <Card.Body className="p-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <OrganizationIcon className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {metricCards.map((card) => (
+          <Card key={card.label} className="shadow-sm border border-gray-100 dark:border-gray-800">
+            <Card.Body className="p-6 flex flex-col gap-4">
+              <div className={`w-12 h-12 rounded-2xl ${card.accent} flex items-center justify-center`}>{card.icon}</div>
+              <div>
+                <p className="text-sm text-gray-500">{card.label}</p>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white">
+                  {loading ? '...' : card.value}
+                </p>
               </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Organisasi</p>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">25</p>
-          </Card.Body>
-        </Card>
-        <Card className="border-l-4 border-l-purple-500 hover-lift">
-          <Card.Body className="p-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <BuildingIcon className="w-7 h-7 text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Ruangan</p>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">50</p>
-          </Card.Body>
-        </Card>
-        <Card className="border-l-4 border-l-green-500 hover-lift">
-          <Card.Body className="p-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <ActivityIcon className="w-7 h-7 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Kegiatan</p>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">100</p>
-          </Card.Body>
-        </Card>
-        <Card className="border-l-4 border-l-orange-500 hover-lift">
-          <Card.Body className="p-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                <AnnouncementIcon className="w-7 h-7 text-orange-600 dark:text-orange-400" />
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Pengumuman</p>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">45</p>
-          </Card.Body>
-        </Card>
+            </Card.Body>
+          </Card>
+        ))}
       </div>
 
       {/* Quick Actions */}
@@ -79,10 +87,10 @@ const AdminDashboard = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           <Link to="/admin/organizations">
-            <Card className="border-0 shadow-lg hover-lift bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 h-full">
-              <Card.Body className="p-10">
-                <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mb-6 shadow-lg">
-                  <OrganizationIcon className="w-8 h-8 text-white" />
+            <Card className="border border-gray-100 dark:border-gray-800 shadow-sm hover-lift bg-white dark:bg-gray-900 h-full">
+              <Card.Body className="p-8">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6">
+                  <OrganizationIcon className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                   Manajemen Organisasi
@@ -97,12 +105,11 @@ const AdminDashboard = () => {
               </Card.Body>
             </Card>
           </Link>
-
           <Link to="/admin/rooms">
-            <Card className="border-0 shadow-lg hover-lift bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 h-full">
-              <Card.Body className="p-10">
-                <div className="w-16 h-16 rounded-2xl bg-purple-600 flex items-center justify-center mb-6 shadow-lg">
-                  <BuildingIcon className="w-8 h-8 text-white" />
+            <Card className="border border-gray-100 dark:border-gray-800 shadow-sm hover-lift bg-white dark:bg-gray-900 h-full">
+              <Card.Body className="p-8">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6">
+                  <BuildingIcon className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                   Manajemen Ruangan
@@ -117,12 +124,11 @@ const AdminDashboard = () => {
               </Card.Body>
             </Card>
           </Link>
-
           <Link to="/admin/announcements">
-            <Card className="border-0 shadow-lg hover-lift bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 h-full">
-              <Card.Body className="p-10">
-                <div className="w-16 h-16 rounded-2xl bg-green-600 flex items-center justify-center mb-6 shadow-lg">
-                  <AnnouncementIcon className="w-8 h-8 text-white" />
+            <Card className="border border-gray-100 dark:border-gray-800 shadow-sm hover-lift bg-white dark:bg-gray-900 h-full">
+              <Card.Body className="p-8">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6">
+                  <AnnouncementIcon className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                   Manajemen Pengumuman
@@ -137,12 +143,11 @@ const AdminDashboard = () => {
               </Card.Body>
             </Card>
           </Link>
-
           <Link to="/admin/activities">
-            <Card className="border-0 shadow-lg hover-lift bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/10 h-full">
-              <Card.Body className="p-10">
-                <div className="w-16 h-16 rounded-2xl bg-orange-600 flex items-center justify-center mb-6 shadow-lg">
-                  <ActivityIcon className="w-8 h-8 text-white" />
+            <Card className="border border-gray-100 dark:border-gray-800 shadow-sm hover-lift bg-white dark:bg-gray-900 h-full">
+              <Card.Body className="p-8">
+                <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center mb-6">
+                  <ActivityIcon className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                   Manajemen Kegiatan
@@ -157,12 +162,11 @@ const AdminDashboard = () => {
               </Card.Body>
             </Card>
           </Link>
-
           <Link to="/admin/contacts">
-            <Card className="border-0 shadow-lg hover-lift bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-900/20 dark:to-indigo-800/10 h-full">
-              <Card.Body className="p-10">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center mb-6 shadow-lg">
-                  <MailIcon className="w-8 h-8 text-white" />
+            <Card className="border border-gray-100 dark:border-gray-800 shadow-sm hover-lift bg-white dark:bg-gray-900 h-full">
+              <Card.Body className="p-8">
+                <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-6">
+                  <MailIcon className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                   Manajemen Kontak

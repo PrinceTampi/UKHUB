@@ -1,0 +1,31 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin Unklab",
+      "email": "admin@unklab.ac.id",
+      "password": "admin123",
+      "role": "admin",
+      "department": "Sistem Organisasi",
+      "createdAt": "2025-01-01"
+    },
+    {
+      "id": 2,
+      "name": "Dosen Teknik",
+      "email": "dosen@unklab.ac.id",
+      "password": "dosen123",
+      "role": "dosen",
+      "department": "Teknik Informatika",
+      "createdAt": "2025-01-02"
+    },
+    {
+      "id": 3,
+      "name": "Mahasiswa Aktif",
+      "email": "mahasiswa@unklab.ac.id",
+      "password": "mahasiswa123",
+      "role": "mahasiswa",
+      "department": "Teknik Informatika",
+      "createdAt": "2025-01-03"
+    }
+  ]
+}

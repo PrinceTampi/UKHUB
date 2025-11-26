@@ -82,24 +82,14 @@ const SearchBar = ({
             onChange={handleSearchChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            className={`w-full px-4 py-2 pl-10 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all ${
-              isFocused
-                ? 'border-blue-500 dark:border-blue-400 shadow-md'
-                : 'border-gray-300 dark:border-gray-600'
+            className={`w-full px-5 py-3 border rounded-xl bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder-gray-400 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              isFocused ? 'border-blue-200 shadow-md' : 'border-gray-200 dark:border-gray-700'
             }`}
           />
-          <svg
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
           {searchTerm && (
             <button
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               aria-label="Clear search"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
